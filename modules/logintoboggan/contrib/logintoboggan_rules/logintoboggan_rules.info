@@ -1,0 +1,13 @@
+name = "LoginToboggan Rules Integration"
+description = "Integrates LoginToboggan with Rules module"
+core = "7.x"
+
+dependencies[] = logintoboggan
+dependencies[] = rules
+
+; Information added by Drupal.org packaging script on 2017-09-22
+version = "8.x-1.x-dev"
+core = "8.x"
+project = "logintoboggan"
+datestamp = "1506068949"
+

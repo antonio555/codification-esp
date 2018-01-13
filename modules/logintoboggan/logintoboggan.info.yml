@@ -1,0 +1,11 @@
+name: LoginToboggan
+type: module
+description: "Improves Drupal's login system."
+# core: 8.x
+configure: logintobogganform.settings
+
+# Information added by Drupal.org packaging script on 2017-09-22
+version: '8.x-1.x-dev'
+core: '8.x'
+project: 'logintoboggan'
+datestamp: 1506068949
