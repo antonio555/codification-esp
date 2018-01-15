@@ -1,0 +1,296 @@
+/**
+ * @file
+ * Attaches behaviors for the Chosen module.
+ */
+
+(function($, Drupal, drupalSettings) {
+  'use strict';
+
+  // Update Chosen elements when state has changed.
+  $(document).on('state:disabled', 'select', function (e) {
+    $(e.target).trigger('chosen:updated');
+  });
+
+  Drupal.behaviors.chosen = {
+
+    settings: {
+
+      /**
+       * Completely ignores elements that match one of these selectors.
+       *
+       * Disabled on:
+       * - Field UI
+       * - WYSIWYG elements
+       * - Tabledrag weights
+       * - Elements that have opted-out of Chosen
+       * - Elements already processed by Chosen.
+       *
+       * @type {string}
+       */
+      ignoreSelector: '#field-ui-field-storage-add-form select, #entity-form-display-edit-form select, #entity-view-display-edit-form select, .wysiwyg, .draggable select[name$="[weight]"], .draggable select[name$="[position]"], .locale-translate-filter-form select, .chosen-disable, .chosen-processed',
+
+      /**
+       * Explicit "opt-in" selector.
+       *
+       * @type {string}
+       */
+      optedInSelector: 'select.chosen-enable',
+
+      /**
+       * The default selector, overridden by drupalSettings.
+       *
+       * @type {string}
+       */
+      selector: 'select:visible'
+    },
+
+    /**
+     * Drupal attach behavior.
+     */
+    attach: function(context, settings) {
+      this.settings = this.getSettings(settings);
+      this.getElements(context).once('chosen').each(function (i, element) {
+        this.createChosen(element);
+      }.bind(this));
+    },
+
+    /**
+     * Creates a Chosen instance for a specific element.
+     *
+     * @param {jQuery|HTMLElement} element
+     *   The element.
+     */
+    createChosen: function(element) {
+      var $element = $(element);
+      $element.chosen(this.getElementOptions($element));
+    },
+
+    /**
+     * Filter out elements that should not be converted into Chosen.
+     *
+     * @param {jQuery|HTMLElement} element
+     *   The element.
+     *
+     * @return {boolean}
+     *   TRUE if the element should stay, FALSE otherwise.
+     */
+    filterElements: function (element) {
+      var $element = $(element);
+
+      // Remove elements that should be ignored completely.
+      if ($element.is(this.settings.ignoreSelector)) {
+        return false;
+      }
+
+      // Zero value means no minimum.
+      var minOptions = $element.attr('multiple') ? this.settings.minimum_multiple : this.settings.minimum_single;
+      return !minOptions || $element.find('option').length >= minOptions;
+    },
+
+    /**
+     * Retrieves the elements that should be converted into Chosen instances.
+     *
+     * @param {jQuery|Element} context
+     *   A DOM Element, Document, or jQuery object to use as context.
+     * @param {string} [selector]
+     *   A selector to use, defaults to the default selector in the settings.
+     */
+    getElements: function (context, selector) {
+      var $context = $(context || document);
+      var $elements = $context.find(selector || this.settings.selector);
+
+      // Remove elements that should not be converted into Chosen.
+      $elements = $elements.filter(function(i, element) {
+        return this.filterElements(element);
+      }.bind(this));
+
+      // Add elements that have explicitly opted in to Chosen.
+      $elements = $elements.add($context.find(this.settings.optedInSelector));
+
+      return $elements;
+    },
+
+    /**
+     * Retrieves options used to create a Chosen instance based on an element.
+     *
+     * @param {jQuery|HTMLElement} element
+     *   The element to process.
+     *
+     * @return {Object}
+     *   The options object used to instantiate a Chosen instance with.
+     */
+    getElementOptions: function (element) {
+      var $element = $(element);
+      var options = $.extend({}, this.settings.options);
+
+      // The width default option is considered the minimum width, so this
+      // must be evaluated for every option.
+      if (this.settings.minimum_width > 0) {
+        if ($element.width() < this.settings.minimum_width) {
+          options.width = this.settings.minimum_width + 'px';
+        }
+        else {
+          options.width = $element.width() + 'px';
+        }
+      }
+
+      // Some field widgets have cardinality, so we must respect that.
+      // @see chosen_pre_render_select()
+      var cardinality;
+      if ($element.attr('multiple') && (cardinality = $element.data('cardinality'))) {
+        options.max_selected_options = cardinality;
+      }
+
+      return options;
+    },
+
+    /**
+     * Retrieves the settings passed from Drupal.
+     *
+     * @param {Object} [settings]
+     *   Passed Drupal settings object, if any.
+     */
+    getSettings: function (settings) {
+      return $.extend(true, {}, this.settings, settings && settings.chosen || drupalSettings.chosen);
+    }
+
+};
+
+})(jQuery, Drupal, drupalSettings);
+;
+/**
+* DO NOT EDIT THIS FILE.
+* See the following change record for more information,
+* https://www.drupal.org/node/2815083
+* @preserve
+**/
+
+(function ($, Drupal, drupalSettings) {
+  Drupal.behaviors.machineName = {
+    attach: function attach(context, settings) {
+      var self = this;
+      var $context = $(context);
+      var timeout = null;
+      var xhr = null;
+
+      function clickEditHandler(e) {
+        var data = e.data;
+        data.$wrapper.removeClass('visually-hidden');
+        data.$target.trigger('focus');
+        data.$suffix.hide();
+        data.$source.off('.machineName');
+      }
+
+      function machineNameHandler(e) {
+        var data = e.data;
+        var options = data.options;
+        var baseValue = $(e.target).val();
+
+        var rx = new RegExp(options.replace_pattern, 'g');
+        var expected = baseValue.toLowerCase().replace(rx, options.replace).substr(0, options.maxlength);
+
+        if (xhr && xhr.readystate !== 4) {
+          xhr.abort();
+          xhr = null;
+        }
+
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+        if (baseValue.toLowerCase() !== expected) {
+          timeout = setTimeout(function () {
+            xhr = self.transliterate(baseValue, options).done(function (machine) {
+              self.showMachineName(machine.substr(0, options.maxlength), data);
+            });
+          }, 300);
+        } else {
+          self.showMachineName(expected, data);
+        }
+      }
+
+      Object.keys(settings.machineName).forEach(function (source_id) {
+        var machine = '';
+        var eventData = void 0;
+        var options = settings.machineName[source_id];
+
+        var $source = $context.find(source_id).addClass('machine-name-source').once('machine-name');
+        var $target = $context.find(options.target).addClass('machine-name-target');
+        var $suffix = $context.find(options.suffix);
+        var $wrapper = $target.closest('.js-form-item');
+
+        if (!$source.length || !$target.length || !$suffix.length || !$wrapper.length) {
+          return;
+        }
+
+        if ($target.hasClass('error')) {
+          return;
+        }
+
+        options.maxlength = $target.attr('maxlength');
+
+        $wrapper.addClass('visually-hidden');
+
+        if ($target.is(':disabled') || $target.val() !== '') {
+          machine = $target.val();
+        } else if ($source.val() !== '') {
+          machine = self.transliterate($source.val(), options);
+        }
+
+        var $preview = $('<span class="machine-name-value">' + options.field_prefix + Drupal.checkPlain(machine) + options.field_suffix + '</span>');
+        $suffix.empty();
+        if (options.label) {
+          $suffix.append('<span class="machine-name-label">' + options.label + ': </span>');
+        }
+        $suffix.append($preview);
+
+        if ($target.is(':disabled')) {
+          return;
+        }
+
+        eventData = {
+          $source: $source,
+          $target: $target,
+          $suffix: $suffix,
+          $wrapper: $wrapper,
+          $preview: $preview,
+          options: options
+        };
+
+        var $link = $('<span class="admin-link"><button type="button" class="link">' + Drupal.t('Edit') + '</button></span>').on('click', eventData, clickEditHandler);
+        $suffix.append($link);
+
+        if ($target.val() === '') {
+          $source.on('formUpdated.machineName', eventData, machineNameHandler).trigger('formUpdated.machineName');
+        }
+
+        $target.on('invalid', eventData, clickEditHandler);
+      });
+    },
+    showMachineName: function showMachineName(machine, data) {
+      var settings = data.options;
+
+      if (machine !== '') {
+        if (machine !== settings.replace) {
+          data.$target.val(machine);
+          data.$preview.html(settings.field_prefix + Drupal.checkPlain(machine) + settings.field_suffix);
+        }
+        data.$suffix.show();
+      } else {
+        data.$suffix.hide();
+        data.$target.val(machine);
+        data.$preview.empty();
+      }
+    },
+    transliterate: function transliterate(source, settings) {
+      return $.get(Drupal.url('machine_name/transliterate'), {
+        text: source,
+        langcode: drupalSettings.langcode,
+        replace_pattern: settings.replace_pattern,
+        replace_token: settings.replace_token,
+        replace: settings.replace,
+        lowercase: true
+      });
+    }
+  };
+})(jQuery, Drupal, drupalSettings);;
