@@ -1,0 +1,264 @@
+/**
+ * @file
+ * Attaches behaviors for the Chosen module.
+ */
+
+(function($, Drupal, drupalSettings) {
+  'use strict';
+
+  // Update Chosen elements when state has changed.
+  $(document).on('state:disabled', 'select', function (e) {
+    $(e.target).trigger('chosen:updated');
+  });
+
+  Drupal.behaviors.chosen = {
+
+    settings: {
+
+      /**
+       * Completely ignores elements that match one of these selectors.
+       *
+       * Disabled on:
+       * - Field UI
+       * - WYSIWYG elements
+       * - Tabledrag weights
+       * - Elements that have opted-out of Chosen
+       * - Elements already processed by Chosen.
+       *
+       * @type {string}
+       */
+      ignoreSelector: '#field-ui-field-storage-add-form select, #entity-form-display-edit-form select, #entity-view-display-edit-form select, .wysiwyg, .draggable select[name$="[weight]"], .draggable select[name$="[position]"], .locale-translate-filter-form select, .chosen-disable, .chosen-processed',
+
+      /**
+       * Explicit "opt-in" selector.
+       *
+       * @type {string}
+       */
+      optedInSelector: 'select.chosen-enable',
+
+      /**
+       * The default selector, overridden by drupalSettings.
+       *
+       * @type {string}
+       */
+      selector: 'select:visible'
+    },
+
+    /**
+     * Drupal attach behavior.
+     */
+    attach: function(context, settings) {
+      this.settings = this.getSettings(settings);
+      this.getElements(context).once('chosen').each(function (i, element) {
+        this.createChosen(element);
+      }.bind(this));
+    },
+
+    /**
+     * Creates a Chosen instance for a specific element.
+     *
+     * @param {jQuery|HTMLElement} element
+     *   The element.
+     */
+    createChosen: function(element) {
+      var $element = $(element);
+      $element.chosen(this.getElementOptions($element));
+    },
+
+    /**
+     * Filter out elements that should not be converted into Chosen.
+     *
+     * @param {jQuery|HTMLElement} element
+     *   The element.
+     *
+     * @return {boolean}
+     *   TRUE if the element should stay, FALSE otherwise.
+     */
+    filterElements: function (element) {
+      var $element = $(element);
+
+      // Remove elements that should be ignored completely.
+      if ($element.is(this.settings.ignoreSelector)) {
+        return false;
+      }
+
+      // Zero value means no minimum.
+      var minOptions = $element.attr('multiple') ? this.settings.minimum_multiple : this.settings.minimum_single;
+      return !minOptions || $element.find('option').length >= minOptions;
+    },
+
+    /**
+     * Retrieves the elements that should be converted into Chosen instances.
+     *
+     * @param {jQuery|Element} context
+     *   A DOM Element, Document, or jQuery object to use as context.
+     * @param {string} [selector]
+     *   A selector to use, defaults to the default selector in the settings.
+     */
+    getElements: function (context, selector) {
+      var $context = $(context || document);
+      var $elements = $context.find(selector || this.settings.selector);
+
+      // Remove elements that should not be converted into Chosen.
+      $elements = $elements.filter(function(i, element) {
+        return this.filterElements(element);
+      }.bind(this));
+
+      // Add elements that have explicitly opted in to Chosen.
+      $elements = $elements.add($context.find(this.settings.optedInSelector));
+
+      return $elements;
+    },
+
+    /**
+     * Retrieves options used to create a Chosen instance based on an element.
+     *
+     * @param {jQuery|HTMLElement} element
+     *   The element to process.
+     *
+     * @return {Object}
+     *   The options object used to instantiate a Chosen instance with.
+     */
+    getElementOptions: function (element) {
+      var $element = $(element);
+      var options = $.extend({}, this.settings.options);
+
+      // The width default option is considered the minimum width, so this
+      // must be evaluated for every option.
+      if (this.settings.minimum_width > 0) {
+        if ($element.width() < this.settings.minimum_width) {
+          options.width = this.settings.minimum_width + 'px';
+        }
+        else {
+          options.width = $element.width() + 'px';
+        }
+      }
+
+      // Some field widgets have cardinality, so we must respect that.
+      // @see chosen_pre_render_select()
+      var cardinality;
+      if ($element.attr('multiple') && (cardinality = $element.data('cardinality'))) {
+        options.max_selected_options = cardinality;
+      }
+
+      return options;
+    },
+
+    /**
+     * Retrieves the settings passed from Drupal.
+     *
+     * @param {Object} [settings]
+     *   Passed Drupal settings object, if any.
+     */
+    getSettings: function (settings) {
+      return $.extend(true, {}, this.settings, settings && settings.chosen || drupalSettings.chosen);
+    }
+
+};
+
+})(jQuery, Drupal, drupalSettings);
+;
+/**
+* DO NOT EDIT THIS FILE.
+* See the following change record for more information,
+* https://www.drupal.org/node/2815083
+* @preserve
+**/
+
+(function ($, Drupal, window) {
+  Drupal.behaviors.tableResponsive = {
+    attach: function attach(context, settings) {
+      var $tables = $(context).find('table.responsive-enabled').once('tableresponsive');
+      if ($tables.length) {
+        var il = $tables.length;
+        for (var i = 0; i < il; i++) {
+          TableResponsive.tables.push(new TableResponsive($tables[i]));
+        }
+      }
+    }
+  };
+
+  function TableResponsive(table) {
+    this.table = table;
+    this.$table = $(table);
+    this.showText = Drupal.t('Show all columns');
+    this.hideText = Drupal.t('Hide lower priority columns');
+
+    this.$headers = this.$table.find('th');
+
+    this.$link = $('<button type="button" class="link tableresponsive-toggle"></button>').attr('title', Drupal.t('Show table cells that were hidden to make the table fit within a small screen.')).on('click', $.proxy(this, 'eventhandlerToggleColumns'));
+
+    this.$table.before($('<div class="tableresponsive-toggle-columns"></div>').append(this.$link));
+
+    $(window).on('resize.tableresponsive', $.proxy(this, 'eventhandlerEvaluateColumnVisibility')).trigger('resize.tableresponsive');
+  }
+
+  $.extend(TableResponsive, {
+    tables: []
+  });
+
+  $.extend(TableResponsive.prototype, {
+    eventhandlerEvaluateColumnVisibility: function eventhandlerEvaluateColumnVisibility(e) {
+      var pegged = parseInt(this.$link.data('pegged'), 10);
+      var hiddenLength = this.$headers.filter('.priority-medium:hidden, .priority-low:hidden').length;
+
+      if (hiddenLength > 0) {
+        this.$link.show().text(this.showText);
+      }
+
+      if (!pegged && hiddenLength === 0) {
+        this.$link.hide().text(this.hideText);
+      }
+    },
+    eventhandlerToggleColumns: function eventhandlerToggleColumns(e) {
+      e.preventDefault();
+      var self = this;
+      var $hiddenHeaders = this.$headers.filter('.priority-medium:hidden, .priority-low:hidden');
+      this.$revealedCells = this.$revealedCells || $();
+
+      if ($hiddenHeaders.length > 0) {
+        $hiddenHeaders.each(function (index, element) {
+          var $header = $(this);
+          var position = $header.prevAll('th').length;
+          self.$table.find('tbody tr').each(function () {
+            var $cells = $(this).find('td').eq(position);
+            $cells.show();
+
+            self.$revealedCells = $().add(self.$revealedCells).add($cells);
+          });
+          $header.show();
+
+          self.$revealedCells = $().add(self.$revealedCells).add($header);
+        });
+        this.$link.text(this.hideText).data('pegged', 1);
+      } else {
+          this.$revealedCells.hide();
+
+          this.$revealedCells.each(function (index, element) {
+            var $cell = $(this);
+            var properties = $cell.attr('style').split(';');
+            var newProps = [];
+
+            var match = /^display\s*\:\s*none$/;
+            for (var i = 0; i < properties.length; i++) {
+              var prop = properties[i];
+              prop.trim();
+
+              var isDisplayNone = match.exec(prop);
+              if (isDisplayNone) {
+                continue;
+              }
+              newProps.push(prop);
+            }
+
+            $cell.attr('style', newProps.join(';'));
+          });
+          this.$link.text(this.showText).data('pegged', 0);
+
+          $(window).trigger('resize.tableresponsive');
+        }
+    }
+  });
+
+  Drupal.TableResponsive = TableResponsive;
+})(jQuery, Drupal, window);;
