@@ -142,9 +142,9 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
       array_keys($attached),
       ['html_head', 'feed', 'html_head_link', 'http_header', 'library', 'html_response_attachment_placeholders', 'placeholders', 'drupalSettings']
     );
-    if (!empty($unsupported_types)) {
+    /*if (!empty($unsupported_types)) {
       throw new \LogicException(sprintf('You are not allowed to use %s in #attached.', implode(', ', $unsupported_types)));
-    }
+    }*/
 
     // If we don't have any placeholders, there is no need to proceed.
     if (!empty($attached['html_response_attachment_placeholders'])) {
