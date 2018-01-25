@@ -1,0 +1,5 @@
+dg_connection_test:
+  js:
+    js/connection-test.js: {}
+  dependencies:
+    - core/drupalSettings

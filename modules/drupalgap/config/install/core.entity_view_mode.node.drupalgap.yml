@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - drupalgap
+id: node.drupalgap
+label: 'DrupalGap'
+targetEntityType: node
+cache: true

@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Make sure they provided a project name.
+if [ -z "$1" ]
+  then
+    echo -e "Missing directory name!"
+    exit 1
+fi
+
+# Make sure they provided a site path.
+if [ -z "$2" ]
+  then
+    echo -e "Missing site path!"
+    exit 1
+fi
+
+DIR=$1;
+SITE_PATH=$2;
+
+#echo $DIR;
+#echo $SITE_PATH;
+
+# Check to see if the project already exists.
+if [ -d "$DIR" ]; then
+  echo "The \"$DIR\" directory already exists!"
+  exit 1
+fi
+
+echo
+read -p "Install the DrupalGap SDK in a new folder called \"$DIR\" for \"$SITE_PATH\"? y/n " -n 1 -r
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+  exit 1
+fi
+
+echo "Installing the DrupalGap SDK in the \"$DIR\" directory..."
+
+wget https://github.com/signalpoint/DrupalGap/archive/8.x-1.x.zip || curl -O https://github.com/signalpoint/DrupalGap/archive/8.x-1.x.zip
+unzip 8.x-1.x.zip
+rm 8.x-1.x.zip
+mv DrupalGap-8.x-1.x/ $DIR
+
+# Hop into the app's directory.
+cd $DIR
+
+echo "Preparing the settings.js file for \"$SITE_PATH\"..."
+cp default.settings.js settings.js
+sed -i "s@sitePath: ''@sitePath: '$SITE_PATH'@g" settings.js
+
+echo "Installing jDrupal alongside the DrupalGap SDK..."
+
+JDRUPALMIN_DL=https://raw.githubusercontent.com/easystreet3/jDrupal/8.x-1.x/jdrupal.min.js
+wget "$JDRUPALMIN_DL" --no-check-certificate || curl -O "$JDRUPALMIN_DL"
+
+echo "Done installing the DrupalGap SDK in \"$DIR\" folder, you may now access the app by visiting: $SITE_PATH/$DIR"
+echo

@@ -1,0 +1,180 @@
+<?php
+
+use \Drupal\Core\Link;
+use \Drupal\Core\Url;
+
+/**
+ * Implements hook_help().
+ */
+function drupalgap_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match) {
+  if ($route_name == 'help.page.drupalgap') {
+
+    // Module README link.
+    $moduleReadmePath = drupal_get_path('module', 'drupalgap') . '/README.md';
+    $moduleReadmeLink = Link::fromTextAndUrl(
+      t('Drupal Module README'),
+      Url::fromUri('base:' . $moduleReadmePath)
+    )->toString();
+
+    // JS Library README link.
+    $jsReadmeLink = Link::fromTextAndUrl(
+      t('SDK README'),
+      Url::fromUri('https://github.com/signalpoint/drupalgap/blob/8.x-1.x/README.md')
+    )->toString();
+
+    // Drupal 8 REST config link.
+    $restConfigLink = Link::fromTextAndUrl(
+      t('Configure Drupal 8 REST'),
+      Url::fromRoute('restui.list')
+    )->toString();
+
+    // Hello world.
+    $helloWorld = Link::fromTextAndUrl(
+      t('Hello World'),
+      Url::fromUri('http://docs.drupalgap.org/8/Hello_World')
+    )->toString();
+
+    // Troubleshoot.
+    $troubleshoot = Link::fromTextAndUrl(
+      t('Troubleshoot'),
+      Url::fromUri('http://docs.drupalgap.org/8/Resources/Troubleshoot')
+    )->toString();
+
+    // Project docs.
+    $projectDocs = Link::fromTextAndUrl(
+      t('Docs'),
+      Url::fromUri('http://docs.drupalgap.org/8')
+    )->toString();
+
+    // Project api.
+    $projectAPI = Link::fromTextAndUrl(
+      t('API'),
+      Url::fromUri('http://api.drupalgap.org/8')
+    )->toString();
+
+    // Return the help text.
+    // @TODO convert to render element once Drupal 8 supports it in hook_help().
+    $msg = t('Use DrupalGap to build applications powered by Drupal.');
+    $help = "<p>{$msg}</p>";
+    $help .= "<ul>";
+    $help .= "<li>{$moduleReadmeLink}</li>";
+    $help .= "<li>{$jsReadmeLink}</li>";
+    $help .= "<li>{$restConfigLink}</li>";
+    $help .= "<li>{$helloWorld}</li>";
+    $help .= "<li>{$troubleshoot}</li>";
+    $help .= "<li>{$projectDocs}</li>";
+    $help .= "<li>{$projectAPI}</li>";
+    $help .= "</ul>";
+    return $help;
+  }
+}
+
+/**
+ * Implements hook_jdrupal_connect_alter().
+ */
+function drupalgap_jdrupal_connect_alter(&$results) {
+
+  // Add some custom data to the result...
+  $result = array(
+    'remote_addr' => $_SERVER['REMOTE_ADDR']
+  );
+
+  // @TODO make this configurable.
+  $ok_entity_types = array(
+    'comment',
+    //'file',
+    'node',
+    //'taxonomy_term',
+    'user'
+  );
+
+  // Field map.
+  // @TODO this would need to be delivered to (or compiled within) the app's
+  // local storage for offline mode. Perhaps this data should only be available
+  // during "development" mode, and we'll recommend that developers place a
+  // binary of the connection data into their compiled app. Not to mention the
+  // performance benefits of not having to pull down all this data on each
+  // connection. Also, consider protecting this data with a user role for those
+  // sites that wish not to share this data about their entities.
+  $result['fieldMap'] = array();
+  $fieldMap = \Drupal::entityManager()->getFieldMap();
+  foreach($fieldMap as $entity_type => $_fieldMap) {
+    if (!in_array($entity_type, $ok_entity_types)) { continue; }
+    $result['fieldMap'][$entity_type] = $_fieldMap;
+  }
+
+  // All bundle info.
+  $allBundleInfo = \Drupal::entityManager()->getAllBundleInfo();
+  $result['allBundleInfo'] = array();
+  foreach($allBundleInfo as $entity_type => $_allBundleInfo) {
+    if (!in_array($entity_type, $ok_entity_types)) { continue; }
+    $result['allBundleInfo'][$entity_type] = $_allBundleInfo;
+  }
+
+  // Field definitions and storage configs.
+  $result['fieldDefinitions'] = array();
+  $result['fieldStorageConfig'] = array();
+
+  // For each entity type...
+  foreach($ok_entity_types as $entity_type) {
+
+    // Add the field definition for each bundle...
+    $result['fieldDefinitions'][$entity_type] = array();
+
+    foreach ($result['allBundleInfo'][$entity_type] as $bundleName => $bundle) {
+
+      $result['fieldDefinitions'][$entity_type][$bundleName] = array();
+
+      // Iterate over each field for the entity type, looking for fields that match the bundle.
+      foreach ($result['fieldMap'][$entity_type] as $fieldName => $field) {
+
+        // Skip any fields not associated with this bundle.
+        $found = FALSE;
+        foreach ($field['bundles'] as $_bundle) {
+          if ($bundleName == $_bundle) {
+            $found = TRUE;
+            break;
+          }
+        }
+        if (!$found || (strpos($fieldName, 'field_') !== 0 && $fieldName != 'body')) { continue; }
+
+        // Add the field definition.
+        $result['fieldDefinitions'][$entity_type][$bundleName][$fieldName] =
+            \Drupal::config('field.field.' . $entity_type . '.' . $bundleName . '.' . $fieldName)->get();
+
+      }
+
+    }
+
+    // Add the field storage config for each field on the entity type.
+    $result['fieldStorageConfig'][$entity_type] = array();
+    foreach ($result['fieldMap'][$entity_type] as $field_name => $_data) {
+
+      // @todo we should be using the loadByName function here, but it isn't working
+      // @see http://drupal.stackexchange.com/q/167001/10645
+      //$result->fieldStorageConfig[$entity_type][$field_name] =
+      //\Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $field_name);
+      $config = \Drupal::config('field.storage.' . $entity_type . '.' . $field_name)->get();
+      if (is_array($config) && empty($config)) { continue; }
+      $result['fieldStorageConfig'][$entity_type][$field_name] = $config;
+
+    }
+
+  }
+
+  // DISPLAY MODES (View modes and Form modes)
+  foreach ($ok_entity_types as $entity_type) {
+    foreach ($result['allBundleInfo'][$entity_type] as $bundle => $contentType) {
+      $viewMode = \Drupal::config('core.entity_view_display.' . $entity_type . '.' . $bundle . '.drupalgap')->get('content');
+      if (!$viewMode) { $viewMode = \Drupal::config('core.entity_view_display.' . $entity_type . '.' . $bundle . '.default')->get('content'); }
+      $result['entity_view_mode'][$entity_type][$bundle] = $viewMode;
+      $formMode = \Drupal::config('core.entity_form_display.' . $entity_type . '.' . $bundle . '.drupalgap')->get('content');
+      if (!$formMode) { $formMode = \Drupal::config('core.entity_form_display.' . $entity_type . '.' . $bundle . '.default')->get('content'); }
+      $result['entity_form_mode'][$entity_type][$bundle] = $formMode;
+    }
+  }
+
+  // Finally toss on our result.
+  $results['drupalgap'] = $result;
+
+}

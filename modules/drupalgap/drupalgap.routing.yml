@@ -1,0 +1,7 @@
+drupalgap.drupalgap_config:
+  path: '/admin/config/services/drupalgap'
+  defaults:
+    _controller: '\Drupal\drupalgap\Controller\DrupalGapController::drupalgapConfig'
+    _title: 'DrupalGap'
+  requirements:
+    _permission: 'administer drupalgap'

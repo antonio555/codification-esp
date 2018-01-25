@@ -1,0 +1,19 @@
+name: DrupalGap
+type: module
+description: The open source application development kit's module for Drupal 8.
+# core: 8.x
+package: Web services
+dependencies:
+  - node
+  - comment
+  - serialization
+  - rest
+  - views
+  - jdrupal
+configure: drupalgap.drupalgap_config
+
+# Information added by Drupal.org packaging script on 2017-11-15
+version: '8.x-1.0-alpha4'
+core: '8.x'
+project: 'drupalgap'
+datestamp: 1510762398

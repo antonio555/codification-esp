@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+    - drupalgap
+id: user.drupalgap
+label: 'DrupalGap'
+targetEntityType: user
+cache: true

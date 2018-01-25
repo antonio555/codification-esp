@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+id: comment.drupalgap
+label: DrupalGap
+targetEntityType: comment
+cache: true
