@@ -134,7 +134,7 @@ class Renderer implements RendererInterface {
     }
 
     // Render in its own render context.
-    $this->isRenderingRoot = TRUE;
+    $this->isRenderingRoot = FALSE;
     $output = $this->executeInRenderContext(new RenderContext(), function () use (&$elements) {
       return $this->render($elements, TRUE);
     });
