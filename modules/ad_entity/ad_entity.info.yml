@@ -1,0 +1,15 @@
+type: module
+name: Advertising Entity
+description: "Provides consolidated management for various types of advertising instances."
+package: Advertising
+configure: entity.ad_entity.collection
+# core: 8.x
+dependencies:
+  - entity:entity
+  - theme_breakpoints_js:theme_breakpoints_js
+
+# Information added by Drupal.org packaging script on 2018-01-18
+version: '8.x-1.0-beta4'
+core: '8.x'
+project: 'ad_entity'
+datestamp: 1516268891

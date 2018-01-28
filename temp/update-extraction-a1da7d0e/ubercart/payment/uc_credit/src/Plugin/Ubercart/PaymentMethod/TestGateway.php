@@ -42,12 +42,12 @@ class TestGateway extends CreditCardPaymentMethodBase {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
-    $form['debug'] = array(
+    $form['debug'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Debug'),
       '#description' => $this->t('Log debug payment information to dblog when card is "charged" by this gateway.'),
       '#default_value' => $this->configuration['debug'],
-    );
+    ];
 
     return $form;
   }
@@ -69,7 +69,7 @@ class TestGateway extends CreditCardPaymentMethodBase {
     // cc_exp_month and cc_exp_year are also validated by
     // CreditCardPaymentMethodBase::validateExpirationDate().
     $month = $order->payment_details['cc_exp_month'];
-    $year  = $order->payment_details['cc_exp_year'];
+    $year = $order->payment_details['cc_exp_year'];
     if ($year < 100) {
       $year = $year + 2000;
     }
@@ -81,10 +81,10 @@ class TestGateway extends CreditCardPaymentMethodBase {
     // All other transactions will succeed.
     if ($order->payment_details['cc_number'] == '0000000000000000' ||
       (isset($order->payment_details['cc_cvv']) && $order->payment_details['cc_cvv'] == '000') ||
-      ($expiration_date - REQUEST_TIME) <= 0                     ||
-      $amount == 12.34                                           ||
-      $order->billing_first_name == 'Fictitious'                 ||
-      $order->billing_phone == '8675309'                            ) {
+      ($expiration_date - REQUEST_TIME) <= 0     ||
+      $amount == 12.34                           ||
+      $order->billing_first_name == 'Fictitious' ||
+      $order->billing_phone == '8675309'            ) {
       $success = FALSE;
     }
     else {
@@ -105,12 +105,12 @@ class TestGateway extends CreditCardPaymentMethodBase {
       uc_order_comment_save($order->id(), $user->id(), $message, 'admin');
     }
 
-    $result = array(
+    $result = [
       'success' => $success,
       'comment' => $this->t('Card charged, resolution code: 0022548315'),
       'message' => $success ? $this->t('Credit card payment processed successfully.') : $this->t('Credit card charge failed.'),
       'uid' => $user->id(),
-    );
+    ];
 
     return $result;
   }

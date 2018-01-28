@@ -9,35 +9,37 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Drupal\uc_order\OrderInterface;
 use Drupal\uc_store\Address;
+use Drupal\uc_ups\UPSUtilities;
 
 /**
  * Shipment creation callback.
  *
  * Confirms shipment data before requesting a shipping label.
  *
- * @param $order_id
- *   The order id for the shipment.
- * @param $package_ids
+ * @param \Drupal\uc_order\OrderInterface $order
+ *   The order entity for the shipment.
+ * @param array $package_ids
  *   Array of package ids to shipped.
  *
  * @see uc_ups_fulfill_order_validate()
  * @see uc_ups_fulfill_order_submit()
  * @ingroup forms
  */
-function uc_ups_fulfill_order($form, FormStateInterface $form_state, $order, $package_ids) {
+function uc_ups_fulfill_order($form, FormStateInterface $form_state, OrderInterface $order, array $package_ids) {
   $store_config = \Drupal::config('uc_store.settings');
-  $pkg_types = \Drupal\uc_ups\UPSUtilities::packageTypes();
-  $form['order_id'] = array('#type' => 'value', '#value' => $order->id());
-  $packages = array();
-  $addresses = array();
+  $pkg_types = UPSUtilities::packageTypes();
+  $form['order_id'] = ['#type' => 'value', '#value' => $order->id()];
+  $packages = [];
+  $addresses = [];
 
-  // Container for package data
-  $form['packages'] = array(
+  // Container for package data.
+  $form['packages'] = [
     '#type' => 'fieldset',
     '#title' => t('Packages'),
-    '#tree' => TRUE
-  );
+    '#tree' => TRUE,
+  ];
   foreach ($package_ids as $id) {
     $package = uc_shipping_package_load($id);
     if ($package) {
@@ -47,100 +49,100 @@ function uc_ups_fulfill_order($form, FormStateInterface $form_state, $order, $pa
         }
       }
       // Create list of products and get a representative product (last one in
-      // the loop) to use for some default values
-      $product_list = array();
+      // the loop) to use for some default values.
+      $product_list = [];
       $declared_value = 0;
       foreach ($package->products as $product) {
         $product_list[] = $product->qty . ' x ' . $product->model;
         $declared_value += $product->qty * $product->price;
       }
-      // Use last product in package to determine package type
+      // Use last product in package to determine package type.
       $ups_data = db_query("SELECT pkg_type FROM {uc_ups_products} WHERE nid = :nid", [':nid' => $product->nid])->fetchAssoc();
       $product->ups = $ups_data;
-      $pkg_form = array(
+      $pkg_form = [
         '#type' => 'fieldset',
         '#title' => t('Package @id', ['@id' => $id]),
-      );
-      $pkg_form['products'] = array(
+      ];
+      $pkg_form['products'] = [
         '#theme' => 'item_list',
         '#items' => $product_list,
-      );
-      $pkg_form['package_id'] = array(
+      ];
+      $pkg_form['package_id'] = [
         '#type'  => 'hidden',
         '#value' => $id,
-      );
-      $pkg_form['pkg_type'] = array(
+      ];
+      $pkg_form['pkg_type'] = [
         '#type'          => 'select',
         '#title'         => t('Package type'),
         '#options'       => $pkg_types,
         '#default_value' => $product->ups['pkg_type'],
         '#required'      => TRUE,
-      );
-      $pkg_form['declared_value'] = array(
+      ];
+      $pkg_form['declared_value'] = [
         '#type'          => 'textfield',
         '#title'         => t('Declared value'),
         '#default_value' => $declared_value,
         '#required'      => TRUE,
-      );
-      $pkg_form['weight'] = array(
+      ];
+      $pkg_form['weight'] = [
         '#type'           => 'container',
-        '#attributes'     => array('class' => array('uc-inline-form', 'clearfix')),
+        '#attributes'     => ['class' => ['uc-inline-form', 'clearfix']],
         '#description'    => t('Weight of the package. Default value is sum of product weights in the package.'),
         '#weight'         => 15,
-      );
-      $pkg_form['weight']['weight'] = array(
+      ];
+      $pkg_form['weight']['weight'] = [
         '#type'          => 'textfield',
         '#title'         => t('Weight'),
         '#default_value' => isset($package->weight) ? $package->weight : 0,
         '#size'          => 10,
         '#maxlength'     => 15,
-      );
-      $pkg_form['weight']['units'] = array(
+      ];
+      $pkg_form['weight']['units'] = [
         '#type'          => 'select',
         '#title'         => t('Units'),
-        '#options'       => array(
+        '#options'       => [
           'lb' => t('Pounds'),
           'kg' => t('Kilograms'),
           'oz' => t('Ounces'),
           'g'  => t('Grams'),
-        ),
+        ],
         '#default_value' => isset($package->weight_units) ? $package->weight_units : $store_config->get('weight.units'),
-      );
-      $pkg_form['dimensions'] = array(
+      ];
+      $pkg_form['dimensions'] = [
         '#type'          => 'container',
-        '#attributes'    => array('class' => array('uc-inline-form', 'clearfix')),
+        '#attributes'    => ['class' => ['uc-inline-form', 'clearfix']],
         '#description'   => t('Physical dimensions of the package.'),
         '#weight'        => 20,
-      );
-      $pkg_form['dimensions']['length'] = array(
+      ];
+      $pkg_form['dimensions']['length'] = [
         '#type'          => 'textfield',
         '#title'         => t('Length'),
         '#default_value' => isset($package->length) ? $package->length : 1,
         '#size'          => 10,
-      );
-      $pkg_form['dimensions']['width'] = array(
+      ];
+      $pkg_form['dimensions']['width'] = [
         '#type'          => 'textfield',
         '#title'         => t('Width'),
         '#default_value' => isset($package->width) ? $package->width : 1,
         '#size'          => 10,
-      );
-      $pkg_form['dimensions']['height'] = array(
+      ];
+      $pkg_form['dimensions']['height'] = [
         '#type'          => 'textfield',
         '#title'         => t('Height'),
         '#default_value' => isset($package->height) ? $package->height : 1,
         '#size'          => 10,
-      );
-      $pkg_form['dimensions']['units'] = array(
+      ];
+      $pkg_form['dimensions']['units'] = [
         '#type'          => 'select',
         '#title'         => t('Units'),
-        '#options'       => array(
+        '#options'       => [
           'in' => t('Inches'),
           'ft' => t('Feet'),
           'cm' => t('Centimeters'),
           'mm' => t('Millimeters'),
-        ),
+        ],
         '#default_value' => isset($package->length_units) ? $package->length_units : $store_config->get('length.units'),
-      );
+      ];
 
       $form['packages'][$id] = $pkg_form;
     }
@@ -148,11 +150,11 @@ function uc_ups_fulfill_order($form, FormStateInterface $form_state, $order, $pa
 
   $form = uc_shipping_address_form($form, $form_state, $addresses, $order);
 
-  foreach (array('delivery_email', 'delivery_last_name', 'delivery_street1', 'delivery_city', 'delivery_country', 'delivery_postal_code') as $field) {
+  foreach (['delivery_email', 'delivery_last_name', 'delivery_street1', 'delivery_city', 'delivery_country', 'delivery_postal_code'] as $field) {
     $form['destination'][$field]['#required'] = TRUE;
   }
 
-  // Determine shipping option chosen by the customer
+  // Determine shipping option chosen by the customer.
   $method  = $order->quote['method'];
   $methods = \Drupal::moduleHandler()->invokeAll('uc_shipping_method');
   if (isset($methods[$method])) {
@@ -160,26 +162,26 @@ function uc_ups_fulfill_order($form, FormStateInterface $form_state, $order, $pa
     $method   = $services[$order->quote['accessorials']];
   }
 
-  // Container for shipment data
-  $form['shipment'] = array(
-    '#type'        => 'fieldset',
-    '#title'       => t('Shipment data'),
-  );
+  // Container for shipment data.
+  $form['shipment'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Shipment data'),
+  ];
 
-  // Inform user of customer's shipping choice
-  $form['shipment']['shipping_choice'] = array(
-    '#type'   => 'markup',
+  // Inform user of customer's shipping choice.
+  $form['shipment']['shipping_choice'] = [
+    '#type' => 'markup',
     '#prefix' => '<div>',
     '#markup' => t('Customer selected "@method" as the shipping method and paid @rate', ['@method' => $method, '@rate' => uc_currency_format($order->quote['rate'])]),
     '#suffix' => '</div>',
-  );
+  ];
 
   // Pass shipping charge paid information on to validation function so it
-  // can be displayed alongside actual costs
-  $form['shipment']['paid'] = array(
-    '#type'  => 'value',
+  // can be displayed alongside actual costs.
+  $form['shipment']['paid'] = [
+    '#type' => 'value',
     '#value' => uc_currency_format($order->quote['rate']),
-  );
+  ];
 
   $services = _uc_ups_service_list();
   $default_service = '';
@@ -187,36 +189,36 @@ function uc_ups_fulfill_order($form, FormStateInterface $form_state, $order, $pa
     $default_service = $order->quote['accessorials'];
   }
 
-  $form['shipment']['service'] = array(
-    '#type'          => 'select',
-    '#title'         => t('UPS service'),
-    '#options'       => $services,
+  $form['shipment']['service'] = [
+    '#type' => 'select',
+    '#title' => t('UPS service'),
+    '#options' => $services,
     '#default_value' => $default_service,
-  );
+  ];
   $today = getdate();
-  $form['shipment']['ship_date'] = array(
-    '#type'          => 'date',
-    '#title'         => t('Ship date'),
-    '#default_value' => array(
-      'year'  => $today['year'],
+  $form['shipment']['ship_date'] = [
+    '#type' => 'date',
+    '#title' => t('Ship date'),
+    '#default_value' => [
+      'year' => $today['year'],
       'month' => $today['mon'],
-      'day'   => $today['mday']
-    ),
-  );
-  $form['shipment']['expected_delivery'] = array(
-    '#type'          => 'date',
-    '#title'         => t('Expected delivery'),
-    '#default_value' => array(
-      'year'  => $today['year'],
+      'day' => $today['mday'],
+    ],
+  ];
+  $form['shipment']['expected_delivery'] = [
+    '#type' => 'date',
+    '#title' => t('Expected delivery'),
+    '#default_value' => [
+      'year' => $today['year'],
       'month' => $today['mon'],
-      'day'   => $today['mday']
-    ),
-  );
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
-    '#type'  => 'submit',
-    '#value' => t('Review shipment')
-  );
+      'day' => $today['mday'],
+    ],
+  ];
+  $form['actions'] = ['#type' => 'actions'];
+  $form['actions']['submit'] = [
+    '#type' => 'submit',
+    '#value' => t('Review shipment'),
+  ];
 
   return $form;
 }
@@ -239,7 +241,7 @@ function uc_ups_fulfill_order_validate($form, FormStateInterface $form_state) {
 
   $origin = new stdClass();
   $destination = new stdClass();
-  $packages = array();
+  $packages = [];
   foreach ($form_state->getValues() as $key => $value) {
     if (substr($key, 0, 7) == 'pickup_') {
       $field = substr($key, 7);
@@ -252,7 +254,7 @@ function uc_ups_fulfill_order_validate($form, FormStateInterface $form_state) {
   }
 
   // This is a total hack to work around changes made in the return value
-  // from uc_shipping_address_form().  That function needs to be fixed, but
+  // from uc_shipping_address_form(). That function needs to be fixed, but
   // until then this should do the trick.
   $origin        = $form_state->getValue('pickup_address');
   $origin->phone = $form_state->getValue('phone');
@@ -267,14 +269,14 @@ function uc_ups_fulfill_order_validate($form, FormStateInterface $form_state) {
   $origin->postal_code = $form_state->getValue('postal_code');
   $origin->email = $form_state->getValue('pickup_email');
 
-  $_SESSION['ups'] = array();
+  $_SESSION['ups'] = [];
   $_SESSION['ups']['origin'] = $origin;
 
   if (empty($destination->company)) {
     $destination->company = $destination->first_name . ' ' . $destination->last_name;
   }
 
-  // Determine if address is Residential or Commercial
+  // Determine if address is Residential or Commercial.
   $destination->residential = $ups_config->get('residential_quotes');
 
   $_SESSION['ups']['destination'] = $destination;
@@ -314,7 +316,7 @@ function uc_ups_fulfill_order_validate($form, FormStateInterface $form_state) {
     }
   }
   $charge = new stdClass();
-  // if NegotiatedRates exist, quote based on those, otherwise, use TotalCharges
+  // If NegotiatedRates exist, quote based on those, otherwise, use TotalCharges.
   if (isset($response->ShipmentCharges)) {
     $charge = $response->ShipmentCharges->TotalCharges;
     $_SESSION['ups']['rate']['type'] = t('Total Charges');
@@ -360,9 +362,9 @@ function uc_ups_shipment_request($packages, $origin, $destination, $ups_service)
   $user_agent = $ua[0];
 
   $services = _uc_ups_service_list();
-  $service = array('code' => $ups_service, 'description' => $services[$ups_service]);
+  $service = ['code' => $ups_service, 'description' => $services[$ups_service]];
 
-  $pkg_types = \Drupal\uc_ups\UPSUtilities::packageTypes();
+  $pkg_types = UPSUtilities::packageTypes();
 
   $store_config = \Drupal::config('uc_store.settings');
   $shipper_zone = $store_config->get('address.zone');
@@ -380,7 +382,7 @@ function uc_ups_shipment_request($packages, $origin, $destination, $ups_service)
   $package_schema = '';
   foreach ($packages as $package) {
     // Determine length conversion factor and weight conversion factor
-    // for this shipment
+    // for this shipment.
     $length_factor = uc_length_conversion($package->length_units, $ups_config->get('unit_system'));
     switch ($ups_units) {
       case 'in':
@@ -388,6 +390,7 @@ function uc_ups_shipment_request($packages, $origin, $destination, $ups_service)
         $units = 'LBS';
         $unit_name = 'Pounds';
         break;
+
       case 'cm':
         $weight_factor = uc_weight_conversion($package->weight_units, 'kg');
         $units = 'KGS';
@@ -397,14 +400,14 @@ function uc_ups_shipment_request($packages, $origin, $destination, $ups_service)
 
     $qty = $package->qty;
     for ($i = 0; $i < $qty; $i++) {
-      $package_type = array('code' => $package->pkg_type, 'description' => $pkg_types[$package->pkg_type]);
+      $package_type = ['code' => $package->pkg_type, 'description' => $pkg_types[$package->pkg_type]];
       $package_schema .= "<Package>";
       $package_schema .=   "<PackagingType>";
       $package_schema .=     "<Code>" . $package_type['code'] . "</Code>";
       $package_schema .=   "</PackagingType>";
       if ($package->pkg_type == '02' && $package->length && $package->width && $package->height) {
         if ($package->length < $package->width) {
-          list($package->length, $package->width) = array($package->width, $package->length);
+          list($package->length, $package->width) = [$package->width, $package->length];
         }
         $package_schema .= "<Dimensions>";
         $package_schema .=   "<UnitOfMeasurement>";
@@ -546,15 +549,15 @@ $schema .= "</ShipmentConfirmRequest>";
  * @ingroup forms
  */
 function uc_ups_confirm_shipment($form, FormStateInterface $form_state, $order) {
-  $form['digest'] = array(
+  $form['digest'] = [
     '#type' => 'hidden',
-    '#value' => $_SESSION['ups']['digest']
-  );
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
+    '#value' => $_SESSION['ups']['digest'],
+  ];
+  $form['actions'] = ['#type' => 'actions'];
+  $form['actions']['submit'] = [
     '#type' => 'submit',
-    '#value' => t('Request Pickup')
-  );
+    '#value' => t('Request Pickup'),
+  ];
 
   return $form;
 }
@@ -602,7 +605,7 @@ function theme_uc_ups_confirm_shipment(array $variables) {
   $output .= '<div class="shipment-data">';
   $method = uc_ups_uc_shipping_method();
   $output .= '<b>' . $method['ups']['quote']['accessorials'][$_SESSION['ups']['service']] . '</b><br />';
-  $output .= '<i>' . SafeMarkup::checkPlain($_SESSION['ups']['rate']['type']) . '</i>: ' . theme('uc_price', array('price' => $_SESSION['ups']['rate']['amount'])) . ' (' . SafeMarkup::checkPlain($_SESSION['ups']['rate']['currency']) . ') -- ';
+  $output .= '<i>' . SafeMarkup::checkPlain($_SESSION['ups']['rate']['type']) . '</i>: ' . theme('uc_price', ['price' => $_SESSION['ups']['rate']['amount']]) . ' (' . SafeMarkup::checkPlain($_SESSION['ups']['rate']['currency']) . ') -- ';
   $output .= '<i>' . t('Paid') . '</i>: ' . $_SESSION['ups']['paid'] . '<br />';
   $ship_date = $_SESSION['ups']['ship_date'];
   $output .= 'Ship date: ' . \Drupal::service('date.formatter')->format(gmmktime(12, 0, 0, $ship_date['month'], $ship_date['day'], $ship_date['year']), 'uc_store');
@@ -650,7 +653,7 @@ function uc_ups_confirm_shipment_submit($form, FormStateInterface $form_state) {
   $shipment->shipping_method = 'ups';
   $shipment->accessorials = $_SESSION['ups']['service'];
   $shipment->carrier = t('UPS');
-  // if NegotiatedRates exist, quote based on those, otherwise, use TotalCharges
+  // If NegotiatedRates exist, quote based on those, otherwise, use TotalCharges.
   if (isset($response->ShipmentResults->ShipmentCharges)) {
     $charge = $response->ShipmentResults->ShipmentCharges->TotalCharges;
     if (isset($response->ShipmentResults->NegotiatedRates)) {
@@ -669,7 +672,7 @@ function uc_ups_confirm_shipment_submit($form, FormStateInterface $form_state) {
     $package =& current($shipment->packages);
     $package->tracking_number = (string) $package_results->TrackingNumber;
     $label_image = (string) $package_results->LabelImage->GraphicImage;
-    // Save the label
+    // Save the label.
     $directory = 'public://ups_labels';
     if (file_prepare_directory($directory, FILE_CREATE_DIRECTORY)) {
       $label_path = $directory . '/label-' . $package->tracking_number . '.gif';
@@ -697,18 +700,18 @@ function uc_ups_confirm_shipment_submit($form, FormStateInterface $form_state) {
 /**
  * Constructs an XML label and pickup request.
  *
- * @param $digest
+ * @param string $digest
  *   Base-64 encoded shipment request.
- * @param $order_id
+ * @param int $order_id
  *   The order id of the shipment.
- * @param $packages
+ * @param array $packages
  *   An array of package ids to be shipped.
  *
- * @return
+ * @return string
  *   ShipmentAcceptRequest XML document to send to UPS.
  */
-function uc_ups_request_pickup($digest, $order_id = 0, $packages = array()) {
-  $packages = (array)$packages;
+function uc_ups_request_pickup($digest, $order_id = 0, array $packages = []) {
+  $packages = (array) $packages;
 
   $schema = uc_ups_access_request();
   $schema .= "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
@@ -768,7 +771,7 @@ Select Print from the File menu in this browser window to print the label below.
 Fold the printed label at the dotted line.</b> &nbsp;
 Place the label in a UPS Shipping Pouch. If you do not have a pouch, affix the folded label using clear plastic shipping tape over the entire label.<br /><br /><li><b>GETTING YOUR SHIPMENT TO UPS<br />
 Customers without a Daily Pickup</b><ul><li>Ground, 3 Day Select, and Standard to Canada shipments must be dropped off at an authorized UPS location, or handed to a UPS driver. Pickup service is not available for these services. To find the nearest drop-off location, select the Drop-off icon from the UPS tool bar.<li>
-Air shipments (including Worldwide Express and Expedited) can be picked up or dropped off. To schedule a pickup, or to find a drop-off location, select the Pickup or Drop-off icon from the UPS tool bar.  </ul> <br />
+Air shipments (including Worldwide Express and Expedited) can be picked up or dropped off. To schedule a pickup, or to find a drop-off location, select the Pickup or Drop-off icon from the UPS tool bar.</ul> <br />
 <b>Customers with a Daily Pickup</b><ul><li>
 Your driver will pickup your shipment(s) as usual. </ul>
 </ol></td></tr></table><table border="0" cellpadding="0" cellspacing="0" width="600">

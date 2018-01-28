@@ -30,30 +30,37 @@ class LineItems extends EditableOrderPanePluginBase {
   /**
    * {@inheritdoc}
    */
+  public function getClasses() {
+    return ['pos-right'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function view(OrderInterface $order, $view_mode) {
-    $rows = array();
+    $rows = [];
     foreach ($order->getDisplayLineItems() as $item) {
-      $rows[] = array(
-        'data' => array(
+      $rows[] = [
+        'data' => [
           // Title column.
-          array(
-            'data' => array('#markup' => $item['title']),
-            'class' => array('li-title'),
-          ),
+          [
+            'data' => ['#markup' => $item['title']],
+            'class' => ['li-title'],
+          ],
           // Amount column.
-          array(
-            'data' => array('#theme' => 'uc_price', '#price' => $item['amount']),
-            'class' => array('li-amount'),
-          ),
-        ),
-      );
+          [
+            'data' => ['#theme' => 'uc_price', '#price' => $item['amount']],
+            'class' => ['li-amount'],
+          ],
+        ],
+      ];
     }
 
-    $build['line_items'] = array(
+    $build['line_items'] = [
       '#type' => 'table',
       '#rows' => $rows,
-      '#attributes' => array('class' => array('line-item-table')),
-    );
+      '#attributes' => ['class' => ['line-item-table']],
+    ];
 
     return $build;
   }
@@ -62,7 +69,7 @@ class LineItems extends EditableOrderPanePluginBase {
    * {@inheritdoc}
    */
   public function buildForm(OrderInterface $order, array $form, FormStateInterface $form_state) {
-    $options = array();
+    $options = [];
     $line_item_manager = \Drupal::service('plugin.manager.uc_order.line_item');
     $definitions = $line_item_manager->getDefinitions();
     foreach ($definitions as $item) {
@@ -71,77 +78,77 @@ class LineItems extends EditableOrderPanePluginBase {
       }
     }
 
-    $form['add_line_item'] = array('#type' => 'container');
+    $form['add_line_item'] = ['#type' => 'container'];
 
-    $form['add_line_item']['li_type_select'] = array(
+    $form['add_line_item']['li_type_select'] = [
       '#type' => 'select',
       '#title' => $this->t('Add a line item'),
       '#options' => $options,
-    );
-    $form['add_line_item']['submit'] = array(
+    ];
+    $form['add_line_item']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Add line'),
-      '#submit' => array(array($this, 'submitForm'), array($this, 'addLineItem')),
-      '#ajax' => array(
-        'callback' => array($this, 'ajaxCallback'),
-      ),
-    );
-    $form['line_items'] = array(
+      '#submit' => [[$this, 'submitForm'], [$this, 'addLineItem']],
+      '#ajax' => [
+        'callback' => [$this, 'ajaxCallback'],
+      ],
+    ];
+    $form['line_items'] = [
       '#type' => 'table',
       '#tree' => TRUE,
-      '#attributes' => array('class' => array('line-item-table')),
+      '#attributes' => ['class' => ['line-item-table']],
       '#prefix' => '<div id="order-line-items">',
       '#suffix' => '</div>',
-    );
+    ];
 
     foreach ($order->getDisplayLineItems() as $item) {
       $id = $item['line_item_id'];
-      $form['line_items'][$id]['li_id'] = array(
+      $form['line_items'][$id]['li_id'] = [
         '#type' => 'hidden',
         '#value' => $id,
-      );
+      ];
       if (!empty($definitions[$item['type']]['stored'])) {
-        $form['line_items'][$id]['remove'] = array(
+        $form['line_items'][$id]['remove'] = [
           '#type' => 'image_button',
           '#title' => $this->t('Remove line item.'),
           '#src' => drupal_get_path('module', 'uc_store') . '/images/error.gif',
           '#button_type' => 'remove',
-          '#submit' => array(array($this, 'submitForm'), array($this, 'removeLineItem')),
-          '#ajax' => array(
-            'callback' => array($this, 'ajaxCallback'),
-          ),
+          '#submit' => [[$this, 'submitForm'], [$this, 'removeLineItem']],
+          '#ajax' => [
+            'callback' => [$this, 'ajaxCallback'],
+          ],
           '#return_value' => $id,
-        );
-        $form['line_items'][$id]['title'] = array(
+        ];
+        $form['line_items'][$id]['title'] = [
           '#type' => 'textfield',
           '#title' => $this->t('Title'),
           '#title_display' => 'invisible',
           '#default_value' => $item['title'],
           '#size' => 40,
           '#maxlength' => 128,
-        );
-        $form['line_items'][$id]['amount'] = array(
+        ];
+        $form['line_items'][$id]['amount'] = [
           '#type' => 'uc_price',
           '#title' => $this->t('Amount'),
           '#title_display' => 'invisible',
           '#default_value' => $item['amount'],
           '#size' => 6,
           '#allow_negative' => TRUE,
-          '#wrapper_attributes' => array('class' => array('li-amount')),
-        );
+          '#wrapper_attributes' => ['class' => ['li-amount']],
+        ];
       }
       else {
-        $form['line_items'][$id]['remove'] = array(
+        $form['line_items'][$id]['remove'] = [
           '#markup' => '',
-        );
-        $form['line_items'][$id]['title'] = array(
+        ];
+        $form['line_items'][$id]['title'] = [
           '#plain_text' => $item['title'],
-        );
-        $form['line_items'][$id]['amount'] = array(
+        ];
+        $form['line_items'][$id]['amount'] = [
           '#theme' => 'uc_price',
           '#price' => $item['amount'],
-          '#wrapper_attributes' => array('class' => array('li-amount')),
-        );
+          '#wrapper_attributes' => ['class' => ['li-amount']],
+        ];
       }
     }
 
@@ -197,7 +204,7 @@ class LineItems extends EditableOrderPanePluginBase {
   public function ajaxCallback($form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
     $response->addCommand(new ReplaceCommand('#order-line-items', trim(drupal_render($form['line_items']))));
-    $status_messages = array('#type' => 'status_messages');
+    $status_messages = ['#type' => 'status_messages'];
     $response->addCommand(new PrependCommand('#order-line-items', drupal_render($status_messages)));
 
     return $response;

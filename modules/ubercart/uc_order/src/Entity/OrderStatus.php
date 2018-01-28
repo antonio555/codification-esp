@@ -18,6 +18,9 @@ use Drupal\uc_order\OrderStatusInterface;
  *     singular = "@count order status",
  *     plural = "@count order statuses",
  *   ),
+ *   handlers = {
+ *     "access" = "Drupal\uc_order\OrderStatusAccessControlHandler"
+ *   },
  *   admin_permission = "administer order workflow",
  *   config_prefix = "status",
  *   entity_keys = {
@@ -63,7 +66,6 @@ class OrderStatus extends ConfigEntityBase implements OrderStatusInterface {
    * @var bool
    */
   protected $locked = FALSE;
-
 
   /**
    * {@inheritdoc}

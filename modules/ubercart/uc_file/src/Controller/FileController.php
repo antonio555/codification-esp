@@ -64,13 +64,13 @@ class FileController extends ControllerBase {
     $build['file_action_form'] = $this->formBuilder->getForm('Drupal\uc_file\Form\FileActionForm');
 
     // Table of files to operate on.
-    $header = array(
+    $header = [
       // Fake out tableselect JavaScript into operating on our table.
-      array('data' => '', 'class' => array('select-all')),
-      'filename' => array('data' => $this->t('File'), 'field' => 'f.filename', 'sort' => 'asc'),
-      'title' => array('data' => $this->t('Product'), 'field' => 'n.title'),
-      'model' => array('data' => $this->t('SKU'), 'field' => 'fp.model', 'class' => array(RESPONSIVE_PRIORITY_LOW)),
-    );
+      ['data' => '', 'class' => ['select-all']],
+      'filename' => ['data' => $this->t('File'), 'field' => 'f.filename', 'sort' => 'asc'],
+      'title' => ['data' => $this->t('Product'), 'field' => 'n.title'],
+      'model' => ['data' => $this->t('SKU'), 'field' => 'fp.model', 'class' => [RESPONSIVE_PRIORITY_LOW]],
+    ];
 
     // Create pager.
     $query = $this->database->select('uc_files', 'f')
@@ -94,51 +94,51 @@ class FileController extends ControllerBase {
     $query->setCountQuery($count_query);
     $result = $query->execute();
 
-    $options = array();
+    $options = [];
     foreach ($result as $file) {
       // All files are shown here, including files which are not attached to products.
       if (isset($file->nid)) {
         // These are attached to products.
-        $options[$file->fid] = array(
-          'checked' => array('data' => array('#type' => 'checkbox', '#default_value' => 0)),
-          'filename' => array(
-            'data' => array('#plain_text' => $file->filename),
-            'class' => is_dir(uc_file_qualify_file($file->filename)) ? array('uc-file-directory-view') : array(),
-          ),
-          'title' => array(
-            'data' => array(
+        $options[$file->fid] = [
+          'checked' => ['data' => ['#type' => 'checkbox', '#default_value' => 0]],
+          'filename' => [
+            'data' => ['#plain_text' => $file->filename],
+            'class' => is_dir(uc_file_qualify_file($file->filename)) ? ['uc-file-directory-view'] : [],
+          ],
+          'title' => [
+            'data' => [
               '#type' => 'link',
               '#title' => $file->title,
               '#url' => Url::fromRoute('entity.node.canonical', ['node' => $file->nid]),
-            ),
-          ),
-          'model' => array(
-            'data' => array('#plain_text' => $file->model),
-          ),
-        );
+            ],
+          ],
+          'model' => [
+            'data' => ['#plain_text' => $file->model],
+          ],
+        ];
       }
       else {
         // These are not attached to products.
-        $options[$file->fid] = array(
-          'checked' => array('data' => array('#type' => 'checkbox', '#default_value' => 0)),
-          'filename' => array(
-            'data' => array('#plain_text' => $file->filename),
-            'class' => is_dir(uc_file_qualify_file($file->filename)) ? array('uc-file-directory-view') : array(),
-          ),
+        $options[$file->fid] = [
+          'checked' => ['data' => ['#type' => 'checkbox', '#default_value' => 0]],
+          'filename' => [
+            'data' => ['#plain_text' => $file->filename],
+            'class' => is_dir(uc_file_qualify_file($file->filename)) ? ['uc-file-directory-view'] : [],
+          ],
           'title' => '',
           'model' => '',
-        );
+        ];
       }
     }
 
     // Create checkboxes for each file.
-    $build['file_select'] = array(
+    $build['file_select'] = [
       '#type' => 'table',
       '#header' => $header,
       '#rows' => $options,
       '#empty' => $this->t('No file downloads available.'),
-    );
-    $build['file_select_pager'] = array('#type' => 'pager');
+    ];
+    $build['file_select_pager'] = ['#type' => 'pager'];
 
     return $build;
   }

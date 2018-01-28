@@ -6,6 +6,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\uc_order\OrderInterface;
 use Drupal\uc_quote\ShippingQuotePluginBase;
+use Drupal\node\Entity\Node;
 
 /**
  * Common functionality for USPS shipping quotes plugins.
@@ -16,11 +17,11 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
+    return [
       'base_rate' => 0,
       'product_rate' => 0,
       'field' => '',
-    );
+    ];
   }
 
   /**
@@ -35,14 +36,14 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
       $fields[$field->getName()] = $field->label();
     }
 
-    $form['base_rate'] = array(
+    $form['base_rate'] = [
       '#type' => 'uc_price',
       '#title' => $this->t('Base price'),
       '#description' => $this->t('The starting price for shipping costs.'),
       '#default_value' => $this->configuration['base_rate'],
       '#required' => TRUE,
-    );
-    $form['product_rate'] = array(
+    ];
+    $form['product_rate'] = [
       '#type' => 'number',
       '#title' => $this->t('Default product shipping rate'),
       '#min' => 0,
@@ -51,14 +52,14 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
       '#default_value' => $this->configuration['product_rate'],
       '#field_suffix' => $this->t('% (percent)'),
       '#required' => TRUE,
-    );
-    $form['field'] = array(
+    ];
+    $form['field'] = [
       '#type' => 'select',
       '#title' => $this->t('Product shipping rate override field'),
       '#description' => $this->t('Overrides the default shipping rate per product for this percentage rate shipping method, when the field is attached to a product content type and has a value.'),
       '#options' => $fields,
       '#default_value' => $this->configuration['field'],
-    );
+    ];
     return $form;
   }
 
@@ -83,16 +84,16 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
    */
   public function getDisplayLabel($label) {
     // USPS logo.
-    $build['image'] = array(
+    $build['image'] = [
       '#theme' => 'image',
       '#uri' => drupal_get_path('module', 'uc_usps') . '/images/uc_usps_logo.jpg',
       '#alt' => $this->t('U.S.P.S. logo'),
-      '#attributes' => array('class' => array('usps-logo')),
-    );
+      '#attributes' => ['class' => ['usps-logo']],
+    ];
     // Add USPS service name, removing any 'U.S.P.S.' prefix.
-    $build['label'] = array(
+    $build['label'] = [
       '#plain_text' => preg_replace('/^U\.S\.P\.S\./', '', $label),
-    );
+    ];
 
     return $build;
   }
@@ -115,7 +116,6 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
       $rate += $product->price->value * floatval($product_rate) / 100;
     }
 
-
     return [$rate];
   }
 
@@ -130,17 +130,17 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
    *   component products.
    *
    * @return array
-   *   Array of packaged products. Packages are separated by shipping address and
+   *   Array of packaged products. Packages are separated by shipping address,
    *   weight or quantity limits imposed by the shipping method or the products.
    */
   protected function packageProducts(array $products, array $addresses) {
     $last_key = 0;
-    $packages = array();
+    $packages = [];
     $usps_config = \Drupal::config('uc_usps.settings');
     if ($usps_config->get('all_in_one') && count($products) > 1) {
       // "All in one" packaging strategy.
       // Only need to do this if more than one product line item in order.
-      $packages[$last_key] = array(0 => $this->newPackage());
+      $packages[$last_key] = [0 => $this->newPackage()];
       foreach ($products as $product) {
         if ($product->nid->value) {
           // Packages are grouped by the address from which they will be
@@ -163,7 +163,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
             // $addresses.
             $addresses[++$last_key] = $address;
             $key = $last_key;
-            $packages[$key] = array(0 => $this->newPackage());
+            $packages[$key] = [0 => $this->newPackage()];
           }
         }
 
@@ -172,7 +172,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
         // object is being read out of the $order object rather than from
         // the database, and the $order object only carries around a limited
         // number of product properties.
-        $temp = node_load($product->nid->value);
+        $temp = Node::load($product->nid->value);
         $product->length = $temp->length->value;
         $product->width = $temp->width->value;
         $product->height = $temp->height->value;
@@ -220,7 +220,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
         if (!isset($product->pkg_qty) || !$product->pkg_qty) {
           $product->pkg_qty = 1;
         }
-        $num_of_pkgs = (int)($product->qty / $product->pkg_qty);
+        $num_of_pkgs = (int) ($product->qty / $product->pkg_qty);
         if ($num_of_pkgs) {
           $package = clone $product;
           $package->description = $product->model;
@@ -236,6 +236,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
               $package->pounds = floor($weight);
               $package->ounces = LB_TO_OZ * ($weight - $package->pounds);
               break;
+
             case 'oz':
               $package->pounds = floor($weight * OZ_TO_LB);
               $package->ounces = $weight - $package->pounds * LB_TO_OZ;
@@ -247,7 +248,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
           // object is being read out of the $order object rather than from
           // the database, and the $order object only carries around a limited
           // number of product properties.
-          $temp = node_load($product->nid);
+          $temp = Node::load($product->nid);
           $product->length = $temp->length;
           $product->width = $temp->width;
           $product->height = $temp->height;
@@ -260,7 +261,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
           $package->width = min($product->length, $product->width) * $length_conversion;
           $package->height = $product->height * $length_conversion;
           if ($package->length < $package->height) {
-            list($package->length, $package->height) = array($package->height, $package->length);
+            list($package->length, $package->height) = [$package->height, $package->length];
           }
           $package->girth = 2 * $package->width + 2 * $package->height;
           $package->size = $package->length <= 12 ? 'REGULAR' : 'LARGE';
@@ -292,6 +293,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
               $package->pounds = floor($weight);
               $package->ounces = LB_TO_OZ * ($weight - $package->pounds);
               break;
+
             case 'oz':
               $package->pounds = floor($weight * OZ_TO_LB);
               $package->ounces = $weight - $package->pounds * LB_TO_OZ;
@@ -303,7 +305,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
           $package->width = min($product->length, $product->width) * $length_conversion;
           $package->height = $product->height * $length_conversion;
           if ($package->length < $package->height) {
-            list($package->length, $package->height) = array($package->height, $package->length);
+            list($package->length, $package->height) = [$package->height, $package->length];
           }
           $package->girth = 2 * $package->width + 2 * $package->height;
           $package->size = $package->length <= 12 ? 'REGULAR' : 'LARGE';
@@ -367,8 +369,10 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
       switch ($type) {
         case 'percentage':
           return $rate + $rate * floatval($markup) / 100;
+
         case 'multiplier':
           return $rate * floatval($markup);
+
         case 'currency':
           return $rate + floatval($markup);
       }
@@ -422,8 +426,8 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
    * @return
    *   JSON object containing rate, error, and debugging information.
    */
-  //public function getQuotes(OrderInterface $order) {
   public function quote($products, $details, $method) {
+    // Use public function getQuotes(OrderInterface $order) in D8 plugin.
     $usps_config = \Drupal::config('uc_usps.settings');
     $quote_config = \Drupal::config('uc_quote.settings');
     // The uc_quote AJAX query can fire before the customer has completely
@@ -434,26 +438,26 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
     // Country code is always needed.
     if (empty($destination->country)) {
       // Skip this shipping method.
-      return array();
+      return [];
     }
 
     // Shipments to the US also need zone and postal_code.
     if (($destination->country == 'US') &&
         (empty($destination->zone) || empty($destination->postal_code))) {
       // Skip this shipping method.
-      return array();
+      return [];
     }
 
     // USPS Production server.
     $connection_url = 'http://production.shippingapis.com/ShippingAPI.dll';
 
     // Initialize $debug_data to prevent PHP notices here and in uc_quote.
-    $debug_data = array('debug' => NULL, 'error' => array());
-    $services = array();
-    $addresses = array($quote_config->get('store_default_address'));
+    $debug_data = ['debug' => NULL, 'error' => []];
+    $services = [];
+    $addresses = [$quote_config->get('store_default_address')];
     $packages = $this->packageProducts($products, $addresses);
     if (!count($packages)) {
-      return array();
+      return [];
     }
 
     foreach ($packages as $key => $ship_packages) {
@@ -487,13 +491,13 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
       $response = new SimpleXMLElement($result->getBody(TRUE));
 
       // Map double-encoded HTML markup in service names to Unicode characters.
-      $service_markup = array(
+      $service_markup = [
         '&lt;sup&gt;&amp;reg;&lt;/sup&gt;'   => '®',
         '&lt;sup&gt;&amp;trade;&lt;/sup&gt;' => '™',
         '&lt;sup&gt;&#174;&lt;/sup&gt;'      => '®',
         '&lt;sup&gt;&#8482;&lt;/sup&gt;'     => '™',
         '**'                                 => '',
-      );
+      ];
       // Use this map to fix USPS service names.
       if (strpos($method['id'], 'intl')) {
         // Find and replace markup in International service names.
@@ -508,32 +512,31 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
         }
       }
 
-
       if (isset($response->Package)) {
         foreach ($response->Package as $package) {
           if (isset($package->Error)) {
-            $debug_data['error'][] = (string)$package->Error[0]->Description . '<br />';
+            $debug_data['error'][] = (string) $package->Error[0]->Description . '<br />';
           }
           else {
             if (strpos($method['id'], 'intl')) {
               foreach ($package->Service as $service) {
-                $id = (string)$service['ID'];
-                $services[$id]['label'] = t('U.S.P.S. @service', array('@service' => (string)$service->SvcDescription));
+                $id = (string) $service['ID'];
+                $services[$id]['label'] = t('U.S.P.S. @service', ['@service' => (string) $service->SvcDescription]);
                 // Markup rate before customer sees it.
                 if (!isset($services[$id]['rate'])) {
                   $services[$id]['rate'] = 0;
                 }
-                $services[$id]['rate'] += $this->rateMarkup((string)$service->Postage);
+                $services[$id]['rate'] += $this->rateMarkup((string) $service->Postage);
               }
             }
             else {
               foreach ($package->Postage as $postage) {
-                $classid = (string)$postage['CLASSID'];
+                $classid = (string) $postage['CLASSID'];
                 if ($classid === '0') {
-                  if ((string)$postage->MailService == "First-Class Mail® Parcel") {
+                  if ((string) $postage->MailService == "First-Class Mail® Parcel") {
                     $classid = 'zeroParcel';
                   }
-                  elseif ((string)$postage->MailService == "First-Class Mail® Letter") {
+                  elseif ((string) $postage->MailService == "First-Class Mail® Letter") {
                     $classid = 'zeroFlat';
                   }
                   else {
@@ -543,16 +546,16 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
                 if (!isset($services[$classid]['rate'])) {
                   $services[$classid]['rate'] = 0;
                 }
-                $services[$classid]['label'] = t('U.S.P.S. @service', array('@service' => (string)$postage->MailService));
+                $services[$classid]['label'] = t('U.S.P.S. @service', ['@service' => (string) $postage->MailService]);
                 // Markup rate before customer sees it.
-                // Rates are stored differently if ONLINE $rate_type is requested.
+                // Rates are stored differently if ONLINE $rate_type requested.
                 // First Class doesn't have online rates, so if CommercialRate
                 // is missing use Rate instead.
                 if ($rate_type && !empty($postage->CommercialRate)) {
-                  $services[$classid]['rate'] += $this->rateMarkup((string)$postage->CommercialRate);
+                  $services[$classid]['rate'] += $this->rateMarkup((string) $postage->CommercialRate);
                 }
                 else {
-                  $services[$classid]['rate'] += $this->rateMarkup((string)$postage->Rate);
+                  $services[$classid]['rate'] += $this->rateMarkup((string) $postage->Rate);
                 }
               }
             }
@@ -581,7 +584,7 @@ abstract class USPSRateBase extends ShippingQuotePluginBase {
 
     uasort($services, 'uc_quote_price_sort');
 
-    // Merge debug data into $services.  This is necessary because
+    // Merge debug data into $services. This is necessary because
     // $debug_data is not sortable by a 'rate' key, so it has to be
     // kept separate from the $services data until this point.
     if (isset($debug_data['debug']) ||

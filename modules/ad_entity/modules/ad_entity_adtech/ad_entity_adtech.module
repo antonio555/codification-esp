@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * @file
+ * Advertising Entity: AdTech Factory module file.
+ */
+
+/**
+ * Implements hook_library_info_build().
+ */
+function ad_entity_adtech_library_info_build() {
+  $libraries = [];
+
+  if ($config = \Drupal::config('ad_entity.settings')) {
+    $settings = $config->get('adtech_factory');
+    if (!empty($settings['library_source'])) {
+      $libraries['provider'] = [
+        'header' => TRUE,
+        'js' => [
+          $settings['library_source'] => [
+            'type' => 'external',
+            'attributes' => ['async' => 'async'],
+          ],
+        ],
+      ];
+    }
+  }
+
+  return $libraries;
+}
+
+/**
+ * Implements template_preprocess_page().
+ */
+function ad_entity_adtech_preprocess_page(&$variables) {
+  if ($config = \Drupal::config('ad_entity.settings')) {
+    $settings = $config->get('adtech_factory');
+    if (!empty($settings['page_targeting'])) {
+      $variables['#attached']['library'][] = 'ad_entity_adtech/page_targeting';
+      $variables['#attached']['drupalSettings']['adtech_page_targeting'] = $settings['page_targeting'];
+    }
+    else {
+      $variables['#attached']['library'][] = 'ad_entity_adtech/provider';
+    }
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function ad_entity_adtech_theme($existing, $type, $theme, $path) {
+  return [
+    'adtech_default' => [
+      'variables' => ['ad_entity' => NULL],
+      'file' => 'ad_entity_adtech.theme.inc',
+    ],
+    'adtech_iframe' => [
+      'variables' => ['ad_entity' => NULL],
+      'file' => 'ad_entity_adtech.iframe.inc',
+    ],
+  ];
+}

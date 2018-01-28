@@ -41,10 +41,9 @@ class PaymentReceipt extends ContentEntityBase implements PaymentReceiptInterfac
       ->setLabel(t('Order ID'))
       ->setDescription(t('The order ID.'))
       ->setSetting('target_type', 'uc_order');
-    $fields['method'] = BaseFieldDefinition::create('entity_reference')
+    $fields['method'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Payment method'))
-      ->setDescription('The payment method used.')
-      ->setSetting('target_type', 'uc_payment_method');
+      ->setDescription('The payment method plugin ID.');
     $fields['amount'] = BaseFieldDefinition::create('decimal')
       ->setLabel(t('Amount'))
       ->setDescription('The payment amount in the store default currency.')
@@ -54,7 +53,7 @@ class PaymentReceipt extends ContentEntityBase implements PaymentReceiptInterfac
     $fields['currency'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Currency'))
       ->setDescription(t('The ISO currency code for the payment.'))
-      ->setPropertyConstraints('value', array('Length' => array('max' => 3)))
+      ->setPropertyConstraints('value', ['Length' => ['max' => 3]])
       ->setSetting('default_value', '')
       ->setSetting('max_length', 3);
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
@@ -94,14 +93,14 @@ class PaymentReceipt extends ContentEntityBase implements PaymentReceiptInterfac
    * {@inheritdoc}
    */
   public function getMethod() {
-    return $this->get('method')->entity;
+    return \Drupal::service('plugin.manager.uc_payment.method')->createInstance($this->get('method')->value);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getMethodId() {
-    return $this->get('method')->target_id;
+    return $this->get('method')->value;
   }
 
   /**

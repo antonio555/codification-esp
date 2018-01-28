@@ -21,9 +21,9 @@ class UbercartPaymentMethod extends Plugin {
   /**
    * The human readable name of the payment method.
    *
-   * @ingroup plugin_translatable
-   *
    * @var \Drupal\Core\Annotation\Translation
+   *
+   * @ingroup plugin_translatable
    */
   public $name;
 
@@ -35,6 +35,8 @@ class UbercartPaymentMethod extends Plugin {
   public $no_ui = FALSE;
 
   /**
+   * Submit button form class name, for redirect methods.
+   *
    * Name of a class that implements \Drupal\Core\Form\FormBase and provides
    * a Submit button on the /cart/checkout/review page redirecting to an
    * external payment site.
@@ -44,10 +46,13 @@ class UbercartPaymentMethod extends Plugin {
   public $redirect = NULL;
 
   /**
+   * Express button form class name.
+   *
    * Name of a class that implements \Drupal\Core\Form\FormBase and provides
    * an express checkout button for the /cart page.
    *
    * @var string
    */
   public $express = NULL;
+
 }

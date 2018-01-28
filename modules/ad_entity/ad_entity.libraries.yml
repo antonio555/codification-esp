@@ -1,0 +1,26 @@
+view:
+  js:
+    js/view.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - theme_breakpoints_js/breakpointsLoader
+
+context:
+  js:
+    js/context.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+turnoff_context:
+  js:
+    js/turnoff.context.js: {}
+  dependencies:
+    - ad_entity/context
+
+targeting_context:
+  js:
+    js/targeting.context.js: {}
+  dependencies:
+    - ad_entity/context

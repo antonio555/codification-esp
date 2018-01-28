@@ -1,5 +1,0 @@
-shopify_api.admin:
-  title: 'Shopify API'
-  description: 'Configure the Shopify API integration.'
-  parent: system.admin_config_system
-  route_name: shopify_api.admin

@@ -4,12 +4,12 @@ description: "Provides reports about your store's sales, customers, and products
 package: Ubercart - core (optional)
 # core: 8.x
 dependencies:
-  - uc_order
-  - uc_product
+  - ubercart:uc_order
+  - ubercart:uc_product
 configure: uc_store.config
 
-# Information added by Drupal.org packaging script on 2016-08-29
-version: '8.x-4.0-alpha5'
+# Information added by Drupal.org packaging script on 2018-01-28
+version: '8.x-4.0-alpha5+184-dev'
 core: '8.x'
 project: 'ubercart'
-datestamp: 1472510047
+datestamp: 1517105290

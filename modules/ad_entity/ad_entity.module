@@ -1,0 +1,219 @@
+<?php
+
+/**
+ * @file
+ * Advertising Entity module file.
+ */
+
+use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\ad_entity\Plugin\AdContextManager;
+
+/**
+ * Implements hook_theme().
+ */
+function ad_entity_theme($existing, $type, $theme, $path) {
+  return [
+    'ad_display' => [
+      'variables' => ['ad_display' => NULL, 'variants' => []],
+    ],
+    'ad_entity' => [
+      'variables' => ['ad_entity' => NULL, 'variant' => '["any"]'],
+      'file' => 'ad_entity.theme.inc',
+    ],
+    'ad_entity_context' => [
+      'variables' => ['item' => NULL, 'definition' => []],
+      'file' => 'ad_entity.theme.inc',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK().
+ */
+function ad_entity_theme_suggestions_ad_display($variables) {
+  $suggestions = [];
+  if (!empty($variables['ad_display'])) {
+    $suggestions[] = 'ad_display__' . $variables['ad_display']->id();
+  }
+  return $suggestions;
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK().
+ */
+function ad_entity_theme_suggestions_ad_entity($variables) {
+  $suggestions = [];
+  if (!empty($variables['ad_entity'])) {
+    $suggestions[] = 'ad_entity__' . $variables['ad_entity']->id();
+  }
+  return $suggestions;
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function ad_entity_page_attachments(array &$page) {
+  if ($config = \Drupal::config('ad_entity.settings')) {
+    $page['#attached']['drupalSettings']['ad_entity_responsive'] =
+      $config->get('enable_responsive_behavior') ? TRUE : FALSE;
+  }
+}
+
+/**
+ * Implements hook_entity_prepare_view().
+ */
+function ad_entity_entity_prepare_view($entity_type_id, array $entities, array $displays, $view_mode) {
+  $type = $entity_type_id;
+  $to_reset = &drupal_static(__FUNCTION__, [$type => []]);
+  $entities_for_reset = [];
+  /** @var \Drupal\Core\Entity\EntityInterface $entity */
+  foreach ($entities as $entity) {
+    $bundle = $entity->bundle();
+    // Check whether the entity being shown defines its own context data.
+    // If so, reset the context data for this entity.
+    if (!isset($to_reset[$type][$bundle][$view_mode])) {
+      $to_reset[$type][$bundle][$view_mode] = FALSE;
+      if ($entity instanceof FieldableEntityInterface) {
+        /** @var \Drupal\Core\Field\FieldDefinitionInterface $definition */
+        foreach ($entity->getFieldDefinitions() as $definition) {
+          if ($definition->getType() == 'ad_entity_context') {
+            $field_name = $definition->getName();
+            $display = $displays[$bundle];
+            if ($display->getComponent($field_name)) {
+              $to_reset[$type][$bundle][$view_mode] = TRUE;
+              break;
+            }
+          }
+        }
+      }
+    }
+    if (!empty($to_reset[$type][$bundle][$view_mode])) {
+      $entities_for_reset[$entity->id()] = $entity;
+    }
+  }
+  if (!empty($entities_for_reset)) {
+    /** @var \Drupal\ad_entity\Plugin\AdContextManager $context_manager */
+    $context_manager = \Drupal::service('ad_entity.context_manager');
+    // Due to the build process, multiple resets at once are not possible.
+    $entity = end($entities_for_reset);
+    if (count($entities_for_reset) === 1) {
+      $context_manager->resetContextDataForEntity($entity);
+    }
+    else {
+      // In case of multiple entities to view, a fallback needs to be provided.
+      // This fallback can only include the information by the route entity.
+      // @todo Find a proper way for list items defining their own context data.
+      $route_match = NULL;
+      try {
+        $route_match = \Drupal::routeMatch();
+      }
+      catch (\Exception $e) {
+      }
+      if (!empty($route_match)) {
+        $context_manager->resetContextDataForRoute($route_match);
+      }
+    }
+    // Mark this entity so that the previous context data can be restored.
+    $entity->__ad_entity_needs_previous_context = TRUE;
+  }
+}
+
+/**
+ * Implements hook_entity_view().
+ */
+function ad_entity_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if (!empty($entity->__ad_entity_needs_previous_context)) {
+    // Context data needs to be reset to the previous state.
+    $build['#post_render'][] = '_ad_entity_reset_to_previous_context_data';
+    unset($entity->__ad_entity_needs_previous_context);
+  }
+}
+
+/**
+ * Implements hook_block_build_BASE_BLOCK_ID_alter() for ad_display blocks.
+ */
+function ad_entity_block_build_ad_display_alter(array &$build, BlockPluginInterface $block) {
+  // @see AdEntityViewBuilder::view() why no cache keys are being used.
+  unset($build['#cache']['keys']);
+}
+
+/**
+ * Implements hook_ad_context_include().
+ */
+function ad_entity_ad_context_include(FieldItemListInterface $items, array $settings) {
+  // When enabled, include "bundle: label" for targeting.
+  if (!empty($settings['targeting']['bundle_label'])) {
+    $bundle = $items->getEntity()->bundle();
+    $label = Html::escape($items->getEntity()->label());
+    $item_value['context'] = [
+      'context_plugin_id' => 'targeting',
+      'apply_on' => [],
+      'context_settings' => [
+        'targeting' => ['targeting' => [$bundle => $label]],
+      ],
+    ];
+    $items->appendItem($item_value);
+  }
+}
+
+/**
+ * Implements hook_ad_context_data_reset().
+ */
+function ad_entity_ad_context_data_reset(AdContextManager $context_manager, EntityInterface $entity) {
+  $type = $entity->getEntityTypeId();
+  $id = $entity->id();
+  $cached_reset_data = &drupal_static(__FUNCTION__, []);
+  if (isset($cached_reset_data[$type][$id])) {
+    $reset = $cached_reset_data[$type][$id];
+    $context_manager->setInvolvedEntities($reset['involved']);
+    $context_manager->setContextData($reset['context']);
+  }
+  else {
+    $reset = ['involved' => [], 'context' => []];
+    if ($config = \Drupal::config('ad_entity.settings')) {
+      $behavior = $config->get('behavior_on_context_reset');
+      // When enabled, include elementary entity information for targeting.
+      if (!empty($behavior['include_entity_info'])) {
+        $info = [
+          'entitytype' => $type . '/' . $entity->bundle(),
+          'entitylabel' => Html::escape($entity->label()),
+          'entityuuid' => $entity->uuid(),
+        ];
+        $context_manager
+          ->addContextData('targeting', ['targeting' => $info]);
+        $context_manager->addInvolvedEntity($entity);
+      }
+      // When enabled, collect context data from the context fields being
+      // enabled in the default view mode of this entity.
+      if (!empty($behavior['collect_default_data'])) {
+        if ($entity instanceof FieldableEntityInterface) {
+          $context_manager->collectContextDataFrom($entity);
+        }
+      }
+    }
+    $reset['involved'] = $context_manager->getInvolvedEntities();
+    $reset['context'] = $context_manager->getContextData();
+    $cached_reset_data[$type][$id] = $reset;
+  }
+}
+
+/**
+ * Post render callback to reset the collected context data to a previous state.
+ *
+ * @param string $markup
+ *   The markup result of the rendering.
+ *
+ * @return string
+ *   The markup result.
+ */
+function _ad_entity_reset_to_previous_context_data($markup) {
+  /** @var \Drupal\ad_entity\Plugin\AdContextManager $context_manager */
+  $context_manager = \Drupal::service('ad_entity.context_manager');
+  $context_manager->resetToPreviousContextData();
+  return $markup;
+}

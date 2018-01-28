@@ -5,10 +5,10 @@ package: Ubercart - payment
 # core: 8.x
 dependencies:
   - not_yet_ported
-  - uc_credit
+  - ubercart:uc_credit
 
-# Information added by Drupal.org packaging script on 2016-08-29
-version: '8.x-4.0-alpha5'
+# Information added by Drupal.org packaging script on 2018-01-28
+version: '8.x-4.0-alpha5+184-dev'
 core: '8.x'
 project: 'ubercart'
-datestamp: 1472510047
+datestamp: 1517105290

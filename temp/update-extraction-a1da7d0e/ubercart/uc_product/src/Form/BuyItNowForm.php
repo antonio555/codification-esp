@@ -53,25 +53,29 @@ class BuyItNowForm extends FormBase implements BaseFormIdInterface {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL) {
-    $query = \Drupal::request()->query->all();
+    $query = $this->getRequest()->query->all();
     $form['#action'] = Url::fromRoute('<current>')->setOptions(['query' => $query])->toString();
 
-    $form['nid'] = array(
+    $form['nid'] = [
       '#type' => 'value',
       '#value' => $node->id(),
-    );
+    ];
 
-    $form['qty'] = array(
+    $form['node'] = [
+      '#type' => 'value',
+      '#value' => $node,
+    ];
+
+    $form['qty'] = [
       '#type' => 'value',
       '#value' => 1,
-    );
+    ];
 
-    $form['actions'] = array('#type' => 'actions');
-    $form['actions']['submit'] = array(
+    $form['actions'] = ['#type' => 'actions'];
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Add to cart'),
-      '#id' => 'edit-submit-' . $node->id(),
-    );
+    ];
 
     uc_form_alter($form, $form_state, $this->getFormId());
 
@@ -83,7 +87,7 @@ class BuyItNowForm extends FormBase implements BaseFormIdInterface {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     if (!$form_state->getRedirect()) {
-      $data = \Drupal::moduleHandler()->invokeAll('uc_add_to_cart_data', array($form_state->getValues()));
+      $data = \Drupal::moduleHandler()->invokeAll('uc_add_to_cart_data', [$form_state->getValues()]);
       $msg = $this->config('uc_cart.settings')->get('add_item_msg');
       $cart = \Drupal::service('uc_cart.manager')->get();
       $redirect = $cart->addItem($form_state->getValue('nid'), $form_state->getValue('qty'), $data, $msg);

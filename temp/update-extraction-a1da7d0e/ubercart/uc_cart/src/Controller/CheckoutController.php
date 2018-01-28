@@ -2,12 +2,15 @@
 
 namespace Drupal\uc_cart\Controller;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Url;
 use Drupal\uc_cart\CartInterface;
 use Drupal\uc_cart\CartManagerInterface;
 use Drupal\uc_cart\Plugin\CheckoutPaneManager;
+use Drupal\uc_cart\Event\CheckoutReviewOrderEvent;
+use Drupal\uc_cart\Event\CheckoutStartEvent;
 use Drupal\uc_order\Entity\Order;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -27,7 +30,7 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
   /**
    * The cart manager.
    *
-   * @var \Drupal\uc_cart\CartManager
+   * @var \Drupal\uc_cart\CartManagerInterface
    */
   protected $cartManager;
 
@@ -39,6 +42,13 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
   protected $session;
 
   /**
+   * The datetime.time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $dateTime;
+
+  /**
    * Constructs a CheckoutController.
    *
    * @param \Drupal\uc_cart\Plugin\CheckoutPaneManager $checkout_pane_manager
@@ -47,11 +57,14 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
    *   The cart manager.
    * @param \Symfony\Component\HttpFoundation\Session\SessionInterface $session
    *   The session.
+   * @param \Drupal\Component\Datetime\TimeInterface $date_time
+   *   The datetime.time service.
    */
-  public function __construct(CheckoutPaneManager $checkout_pane_manager, CartManagerInterface $cart_manager, SessionInterface $session) {
+  public function __construct(CheckoutPaneManager $checkout_pane_manager, CartManagerInterface $cart_manager, SessionInterface $session, TimeInterface $date_time) {
     $this->checkoutPaneManager = $checkout_pane_manager;
     $this->cartManager = $cart_manager;
     $this->session = $session;
+    $this->dateTime = $date_time;
   }
 
   /**
@@ -61,12 +74,13 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
     return new static(
       $container->get('plugin.manager.uc_cart.checkout_pane'),
       $container->get('uc_cart.manager'),
-      $container->get('session')
+      $container->get('session'),
+      $container->get('datetime.time')
     );
   }
 
   /**
-   * Displays the cart checkout page built of checkout panes from enabled modules.
+   * Builds the cart checkout page from available checkout pane plugins.
    */
   public function checkout() {
     $cart_config = $this->config('uc_cart.settings');
@@ -80,21 +94,23 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
     if ($this->currentUser()->isAnonymous() && !$cart_config->get('checkout_anonymous')) {
       drupal_set_message($this->t('You must login before you can proceed to checkout.'));
       if ($this->config('user.settings')->get('register') != USER_REGISTER_ADMINISTRATORS_ONLY) {
-        drupal_set_message($this->t('If you do not have an account yet, you should <a href=":url">register now</a>.', [':url' => Url::fromRoute('user.register', [], ['query' => drupal_get_destination()])->toString()]));
+        drupal_set_message($this->t('If you do not have an account yet, you should <a href=":url">register now</a>.', [':url' => Url::fromRoute('user.register', [], ['query' => $this->getDestinationArray()])->toString()]));
       }
-      return $this->redirect('user.page', [], ['query' => drupal_get_destination()]);
+      return $this->redirect('user.login', [], ['query' => $this->getDestinationArray()]);
     }
 
     // Load an order from the session, if available.
     if ($this->session->has('cart_order')) {
       $order = $this->loadOrder();
       if ($order) {
-        // Don't use an existing order if it has changed status or owner, or if
-        // there has been no activity for 10 minutes (to prevent identity theft).
+        // To prevent identity theft, don't use an existing order if it has
+        // changed status or owner, or if there has been no activity for 10
+        // minutes.
+        $request_time = $this->dateTime->getRequestTime();
         if ($order->getStateId() != 'in_checkout' ||
             ($this->currentUser()->isAuthenticated() && $this->currentUser()->id() != $order->getOwnerId()) ||
-            $order->getChangedTime() < REQUEST_TIME - CartInterface::CHECKOUT_TIMEOUT) {
-          if ($order->getStateId() == 'in_checkout' && $order->getChangedTime() < REQUEST_TIME - CartInterface::CHECKOUT_TIMEOUT) {
+            $order->getChangedTime() < $request_time - CartInterface::CHECKOUT_TIMEOUT) {
+          if ($order->getStateId() == 'in_checkout' && $order->getChangedTime() < $request_time - CartInterface::CHECKOUT_TIMEOUT) {
             // Mark expired orders as abandoned.
             $order->setStatusId('abandoned')->save();
           }
@@ -109,7 +125,7 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
       }
     }
 
-    // Determine whether the form is being submitted or built for the first time.
+    // Determine if the form is being submitted or built for the first time.
     if (isset($_POST['form_id']) && $_POST['form_id'] == 'uc_cart_checkout_form') {
       // If this is a form submission, make sure the cart order is still valid.
       if (!isset($order)) {
@@ -126,9 +142,9 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
       $rebuild = FALSE;
       if (!isset($order)) {
         // Create a new order if necessary.
-        $order = Order::create(array(
+        $order = Order::create([
           'uid' => $this->currentUser()->id(),
-        ));
+        ]);
         $order->save();
         $this->session->set('cart_order', $order->id());
         $rebuild = TRUE;
@@ -149,7 +165,7 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
 
       if ($rebuild) {
         // Copy the cart contents to the cart order.
-        $order->products = array();
+        $order->products = [];
         foreach ($items as $item) {
           $order->products[] = $item->toOrderProduct();
         }
@@ -167,9 +183,13 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
       return $this->redirect('uc_cart.cart');
     }
 
-    // Trigger the "Customer starts checkout" hook and event.
-    $this->moduleHandler()->invokeAll('uc_cart_checkout_start', array($order));
-    // rules_invoke_event('uc_cart_checkout_start', $order);
+    // Invoke the customer starts checkout hook.
+    $this->moduleHandler()->invokeAll('uc_cart_checkout_start', [$order]);
+
+    // Trigger the checkout start event.
+    /* rules_invoke_event('uc_cart_checkout_start', $order); */
+    $event = new CheckoutStartEvent($order);
+    \Drupal::service('event_dispatcher')->dispatch($event::EVENT_NAME, $event);
 
     return $this->formBuilder()->getForm('Drupal\uc_cart\Form\CheckoutForm', $order);
   }
@@ -193,7 +213,7 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
       return $this->redirect('uc_cart.cart');
     }
 
-    $filter = array('enabled' => FALSE);
+    $filter = ['enabled' => FALSE];
 
     // If the cart isn't shippable, bypass panes with shippable == TRUE.
     if (!$order->isShippable() && $this->config('uc_cart.settings')->get('panes.delivery.settings.delivery_not_shippable')) {
@@ -208,14 +228,22 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
       }
     }
 
-    $build = array(
+    $build = [
       '#theme' => 'uc_cart_checkout_review',
       '#panes' => $data,
       '#form' => $this->formBuilder()->getForm('Drupal\uc_cart\Form\CheckoutReviewForm', $order),
-    );
+    ];
 
     $build['#attached']['library'][] = 'uc_cart/uc_cart.styles';
     $build['#attached']['library'][] = 'uc_cart/uc_cart.review.scripts';
+
+    // Invoke the customer reviews order checkout hook.
+    $this->moduleHandler()->invokeAll('uc_cart_checkout_review_order', [$order]);
+
+    // Trigger the checkout review order event.
+    /* rules_invoke_event('uc_cart_checkout_review_order', $order); */
+    $event = new CheckoutReviewOrderEvent($order);
+    \Drupal::service('event_dispatcher')->dispatch($event::EVENT_NAME, $event);
 
     return $build;
   }
@@ -231,9 +259,9 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
     $order = $this->loadOrder();
 
     if (empty($order)) {
-      // Display messages to customers and the administrator if the order was lost.
+      // If order was lost, display customer message and log the occurrence.
       drupal_set_message($this->t("We're sorry.  An error occurred while processing your order that prevents us from completing it at this time. Please contact us and we will resolve the issue as soon as possible."), 'error');
-      $this->logger('uc_cart')->error('An empty order made it to checkout! Cart order ID: @cart_order', ['@cart_order' => $this->session->get('cart_order')]);
+      $this->getLogger('uc_cart')->error('An empty order made it to checkout! Cart order ID: @cart_order', ['@cart_order' => $this->session->get('cart_order')]);
       return $this->redirect('uc_cart.cart');
     }
 
@@ -255,7 +283,7 @@ class CheckoutController extends ControllerBase implements ContainerInjectionInt
   protected function loadOrder() {
     $id = $this->session->get('cart_order');
     // Reset uc_order entity cache then load order.
-    $storage = \Drupal::entityTypeManager()->getStorage('uc_order');
+    $storage = $this->entityTypeManager()->getStorage('uc_order');
     $storage->resetCache([$id]);
     return $storage->load($id);
   }

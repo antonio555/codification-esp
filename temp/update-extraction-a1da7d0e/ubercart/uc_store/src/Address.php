@@ -13,8 +13,12 @@ class Address implements AddressInterface {
   use AddressTrait;
   use StringTranslationTrait;
 
-  /** Store default country code. */
-  protected $default_country;
+  /**
+   * Store default country code.
+   *
+   * @var string
+   */
+  protected $defaultCountry;
 
   /**
    * Constructor.
@@ -22,8 +26,8 @@ class Address implements AddressInterface {
    * For convenience, country defaults to store country.
    */
   protected function __construct() {
-    $this->default_country = \Drupal::config('uc_store.settings')->get('address.country');
-    $this->country = $this->default_country;
+    $this->defaultCountry = \Drupal::config('uc_store.settings')->get('address.country');
+    $this->country = $this->defaultCountry;
   }
 
   /**
@@ -54,7 +58,7 @@ class Address implements AddressInterface {
    *   A formatted string containing the address.
    */
   public function __toString() {
-    $variables = array(
+    $variables = [
       '!company' => $this->company,
       '!first_name' => $this->first_name,
       '!last_name' => $this->last_name,
@@ -62,19 +66,19 @@ class Address implements AddressInterface {
       '!street2' => $this->street2,
       '!city' => $this->city,
       '!postal_code' => $this->postal_code,
-    );
+    ];
 
     $country = $this->country ? \Drupal::service('country_manager')->getCountry($this->country) : NULL;
     if ($country) {
-      $variables += array(
+      $variables += [
         '!zone_code' => $this->zone ?: $this->t('N/A'),
         '!zone_name' => isset($country->getZones()[$this->zone]) ? $country->getZones()[$this->zone] : $this->t('Unknown'),
         '!country_name' => $this->t($country->getName()),
         '!country_code2' => $country->id(),
         '!country_code3' => $country->getAlpha3(),
-      );
+      ];
 
-      if ($this->country != $this->default_country) {
+      if ($this->country != $this->defaultCountry) {
         $variables['!country_name_if'] = $variables['!country_name'];
         $variables['!country_code2_if'] = $variables['!country_code2'];
         $variables['!country_code3_if'] = $variables['!country_code3'];
@@ -101,8 +105,8 @@ class Address implements AddressInterface {
       $address = Unicode::strtoupper($address);
     }
 
-    // <br> instead of <br />, because Twig will change it to <br> anyway and it's nice
-    // to be able to test the Raw output.
+    // <br> instead of <br />, because Twig will change it to <br> anyway and
+    // it's nice to be able to test the Raw output.
     return nl2br($address, FALSE);
   }
 

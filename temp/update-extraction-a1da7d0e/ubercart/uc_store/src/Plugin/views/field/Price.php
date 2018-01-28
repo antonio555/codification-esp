@@ -21,7 +21,7 @@ class Price extends NumericField {
   protected function defineOptions() {
     $options = parent::defineOptions();
 
-    $options['format'] = array('default' => 'uc_price');
+    $options['format'] = ['default' => 'uc_price'];
 
     return $options;
   }
@@ -32,18 +32,18 @@ class Price extends NumericField {
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    $form['format'] =  array(
+    $form['format'] = [
       '#title' => $this->t('Format'),
       '#type' => 'radios',
-      '#options' => array(
+      '#options' => [
         'uc_price' => $this->t('Ubercart price'),
         'numeric' => $this->t('Numeric'),
-      ),
+      ],
       '#default_value' => $this->options['format'],
       '#weight' => -1,
-    );
+    ];
 
-    foreach (array('separator', 'format_plural', 'prefix', 'suffix') as $field) {
+    foreach (['separator', 'format_plural', 'prefix', 'suffix'] as $field) {
       $form[$field]['#states']['visible']['input[name="options[format]"]']['value'] = 'numeric';
     }
   }
@@ -65,4 +65,5 @@ class Price extends NumericField {
       return parent::render($values);
     }
   }
+
 }

@@ -24,7 +24,7 @@ class ShipmentId extends FieldPluginBase {
   public function init(ViewExecutable $view, DisplayPluginBase $display, array &$options = NULL) {
     parent::init($view, $display, $options);
     if (!empty($this->options['link_to_shipment'])) {
-      $this->additional_fields['order_id'] = array('table' => $this->table_alias, 'field' => 'order_id');
+      $this->additional_fields['order_id'] = ['table' => $this->table_alias, 'field' => 'order_id'];
     }
   }
 
@@ -33,7 +33,7 @@ class ShipmentId extends FieldPluginBase {
    */
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['link_to_shipment'] = array('default' => FALSE);
+    $options['link_to_shipment'] = ['default' => FALSE];
     return $options;
   }
 
@@ -44,12 +44,12 @@ class ShipmentId extends FieldPluginBase {
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
-    $form['link_to_shipment'] = array(
+    $form['link_to_shipment'] = [
       '#title' => t('Link this field to the shipment page'),
       '#description' => t('This will override any other link you have set.'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['link_to_shipment']),
-    );
+    ];
   }
 
   /**
@@ -57,7 +57,7 @@ class ShipmentId extends FieldPluginBase {
    *
    * Data should be made XSS safe prior to calling this function.
    */
-  public function render_link($data, $values) {
+  protected function renderLink($data, $values) {
     if (!empty($this->options['link_to_shipment'])) {
       $this->options['alter']['make_link'] = FALSE;
 
@@ -80,7 +80,7 @@ class ShipmentId extends FieldPluginBase {
    * {@inheritdoc}
    */
   public function render(ResultRow $values) {
-    return $this->render_link(SafeMarkup::checkPlain($values->{$this->field_alias}), $values);
+    return $this->renderLink(SafeMarkup::checkPlain($values->{$this->field_alias}), $values);
   }
 
 }

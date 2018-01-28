@@ -6,6 +6,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\uc_order\OrderInterface;
 use Drupal\uc_quote\ShippingQuotePluginBase;
+use Drupal\node\Entity\Node;
 
 /**
  * Common functionality for UPS shipping quotes plugins.
@@ -16,11 +17,11 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
+    return [
       'base_rate' => 0,
       'product_rate' => 0,
       'field' => '',
-    );
+    ];
   }
 
   /**
@@ -35,14 +36,14 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
       $fields[$field->getName()] = $field->label();
     }
 
-    $form['base_rate'] = array(
+    $form['base_rate'] = [
       '#type' => 'uc_price',
       '#title' => $this->t('Base price'),
       '#description' => $this->t('The starting price for shipping costs.'),
       '#default_value' => $this->configuration['base_rate'],
       '#required' => TRUE,
-    );
-    $form['product_rate'] = array(
+    ];
+    $form['product_rate'] = [
       '#type' => 'number',
       '#title' => $this->t('Default product shipping rate'),
       '#min' => 0,
@@ -51,14 +52,14 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
       '#default_value' => $this->configuration['product_rate'],
       '#field_suffix' => $this->t('% (percent)'),
       '#required' => TRUE,
-    );
-    $form['field'] = array(
+    ];
+    $form['field'] = [
       '#type' => 'select',
       '#title' => $this->t('Product shipping rate override field'),
       '#description' => $this->t('Overrides the default shipping rate per product for this percentage rate shipping method, when the field is attached to a product content type and has a value.'),
       '#options' => $fields,
       '#default_value' => $this->configuration['field'],
-    );
+    ];
     return $form;
   }
 
@@ -83,20 +84,20 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
    */
   public function getDisplayLabel($label) {
     // Start with logo as required by the UPS terms of service.
-    $build['image'] = array(
+    $build['image'] = [
       '#theme' => 'image',
       '#uri' => drupal_get_path('module', 'uc_ups') . '/images/uc_ups_logo.jpg',
       '#alt' => $this->t('UPS logo'),
-      '#attributes' => array('class' => array('ups-logo')),
-    );
+      '#attributes' => ['class' => ['ups-logo']],
+    ];
     // Add the UPS service name.
-    $build['label'] = array(
+    $build['label'] = [
       '#plain_text' => $this->t('@service Rate', ['@service' => $label]),
-    );
+    ];
     // Add package information.
-    $build['packages'] = array(
+    $build['packages'] = [
       '#plain_text' => ' (' . \Drupal::translation()->formatPlural(count($packages), '1 package', '@count packages') . ')',
-    );
+    ];
 
     return $build;
   }
@@ -119,7 +120,6 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
       $rate += $product->price->value * floatval($product_rate) / 100;
     }
 
-
     return [$rate];
   }
 
@@ -134,17 +134,17 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
    *   component products.
    *
    * @return array
-   *   Array of packaged products. Packages are separated by shipping address and
-   *   weight or quantity limits imposed by the shipping method or the products.
+   *   Packaged products. Packages are separated by shipping address and weight
+   *   or quantity limits imposed by the shipping method or the products.
    */
   protected function packageProducts(array $products, array $addresses) {
     $last_key = 0;
-    $packages = array();
+    $packages = [];
     $ups_config = \Drupal::config('uc_ups.settings');
     if ($ups_config->get('all_in_one') && count($products) > 1) {
       // "All in one" packaging strategy.
       // Only need to do this if more than one product line item in order.
-      $packages[$last_key] = array(0 => $this->newPackage());
+      $packages[$last_key] = [0 => $this->newPackage()];
       foreach ($products as $product) {
         if ($product->nid->value) {
           // Packages are grouped by the address from which they will be
@@ -167,7 +167,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
             // $addresses.
             $addresses[++$last_key] = $address;
             $key = $last_key;
-            $packages[$key] = array(0 => $this->newPackage());
+            $packages[$key] = [0 => $this->newPackage()];
           }
         }
 
@@ -176,7 +176,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
         // object is being read out of the $order object rather than from
         // the database, and the $order object only carries around a limited
         // number of product properties.
-        $temp = node_load($product->nid->value);
+        $temp = Node::load($product->nid->value);
         $product->length = $temp->length->value;
         $product->width = $temp->width->value;
         $product->height = $temp->height->value;
@@ -202,7 +202,8 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
     }
     else {
       // !$ups_config->get('all_in_one') || count($products) = 1
-      // "Each in own" packaging strategy, or only one product line item in order.
+      // This is the "Each in own" packaging strategy, or
+      // there is only one product line item in order.
       foreach ($products as $product) {
         if ($product->nid) {
           $address = uc_quote_get_default_shipping_address($product->nid);
@@ -224,7 +225,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
         if (!isset($product->pkg_qty) || !$product->pkg_qty) {
           $product->pkg_qty = 1;
         }
-        $num_of_pkgs = (int)($product->qty / $product->pkg_qty);
+        $num_of_pkgs = (int) ($product->qty / $product->pkg_qty);
         if ($num_of_pkgs) {
           $package = clone $product;
           $package->description = $product->model;
@@ -240,6 +241,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
               $package->pounds = floor($weight);
               $package->ounces = LB_TO_OZ * ($weight - $package->pounds);
               break;
+
             case 'oz':
               $package->pounds = floor($weight * OZ_TO_LB);
               $package->ounces = $weight - $package->pounds * LB_TO_OZ;
@@ -251,7 +253,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
           // object is being read out of the $order object rather than from
           // the database, and the $order object only carries around a limited
           // number of product properties.
-          $temp = node_load($product->nid);
+          $temp = Node::load($product->nid);
           $product->length = $temp->length;
           $product->width = $temp->width;
           $product->height = $temp->height;
@@ -264,7 +266,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
           $package->width = min($product->length, $product->width) * $length_conversion;
           $package->height = $product->height * $length_conversion;
           if ($package->length < $package->height) {
-            list($package->length, $package->height) = array($package->height, $package->length);
+            list($package->length, $package->height) = [$package->height, $package->length];
           }
           $package->girth = 2 * $package->width + 2 * $package->height;
           $package->size = $package->length <= 12 ? 'REGULAR' : 'LARGE';
@@ -296,6 +298,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
               $package->pounds = floor($weight);
               $package->ounces = LB_TO_OZ * ($weight - $package->pounds);
               break;
+
             case 'oz':
               $package->pounds = floor($weight * OZ_TO_LB);
               $package->ounces = $weight - $package->pounds * LB_TO_OZ;
@@ -307,7 +310,7 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
           $package->width = min($product->length, $product->width) * $length_conversion;
           $package->height = $product->height * $length_conversion;
           if ($package->length < $package->height) {
-            list($package->length, $package->height) = array($package->height, $package->length);
+            list($package->length, $package->height) = [$package->height, $package->length];
           }
           $package->girth = 2 * $package->width + 2 * $package->height;
           $package->size = $package->length <= 12 ? 'REGULAR' : 'LARGE';
@@ -352,10 +355,10 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
   /**
    * Modifies the rate received from UPS before displaying to the customer.
    *
-   * @param $rate
+   * @param float $rate
    *   Shipping rate without any rate markup.
    *
-   * @return
+   * @return float
    *   Shipping rate after markup.
    */
   protected function rateMarkup($rate) {
@@ -367,8 +370,10 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
       switch ($type) {
         case 'percentage':
           return $rate + $rate * floatval($markup) / 100;
+
         case 'multiplier':
           return $rate * floatval($markup);
+
         case 'currency':
           return $rate + floatval($markup);
       }
@@ -381,16 +386,16 @@ abstract class UPSRateBase extends ShippingQuotePluginBase {
   /**
    * Modifies the weight of shipment before sending to UPS for a quote.
    *
-   * @param $weight
+   * @param float $weight
    *   Shipping weight without any weight markup.
    *
-   * @return
+   * @return float
    *   Shipping weight after markup.
    */
   protected function weightMarkup($weight) {
     $ups_config = \Drupal::config('uc_ups.settings');
     $markup = trim($ups_config->get('weight_markup'));
-    $type   = $ups_config->get('weight_markup_type');
+    $type = $ups_config->get('weight_markup_type');
 
     if (is_numeric($markup)) {
       switch ($type) {

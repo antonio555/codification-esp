@@ -13,6 +13,7 @@
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\uc_cart\CartInterface;
+use Drupal\uc_order\Entity\Order;
 use Drupal\uc_payment\PaymentReceiptInterface;
 
 /**
@@ -41,9 +42,9 @@ function uc_cart_cron() {
 
   // Update status of abandoned orders.
   $result = db_query('SELECT order_id FROM {uc_orders} WHERE order_status = :status AND changed < :time',
-    [':status' => 'in_checkout', ':time' => REQUEST_TIME - CartInterface::ORDER_TIMEOUT])->fetchCol();
+    [':status' => 'in_checkout', ':time' => \Drupal::time()->getRequestTime() - CartInterface::ORDER_TIMEOUT])->fetchCol();
   foreach ($result as $order_id) {
-    \Drupal\uc_order\Entity\Order::load($order_id)
+    Order::load($order_id)
       ->setStatusId('abandoned')
       ->save();
   }
@@ -53,54 +54,54 @@ function uc_cart_cron() {
  * Implements hook_theme().
  */
 function uc_cart_theme() {
-  return array(
-    'uc_cart_block_title' => array(
-      'variables' => array(
+  return [
+    'uc_cart_block_title' => [
+      'variables' => [
         'title' => NULL,
         'show_icon' => FALSE,
         'cart_empty' => NULL,
         'collapsible' => TRUE,
         'collapsed' => TRUE,
-      ),
+      ],
       'template' => 'uc-cart-block-title',
-    ),
-    'uc_cart_block' => array(
-      'variables' => array(
+    ],
+    'uc_cart_block' => [
+      'variables' => [
         'items' => NULL,
         'item_count' => NULL,
         'total' => NULL,
         'summary_links' => NULL,
         'collapsed' => TRUE,
-      ),
+      ],
       'template' => 'uc-cart-block',
-    ),
-    'uc_cart_view_form' => array(
+    ],
+    'uc_cart_view_form' => [
       'render element' => 'form',
       'template' => 'uc-cart-form',
-    ),
-    'uc_cart_checkout_buttons' => array(
+    ],
+    'uc_cart_checkout_buttons' => [
       'render element' => 'buttons',
       'template' => 'uc-cart-checkout-buttons',
-    ),
-    'uc_cart_empty' => array(
-      'variables' => array(),
+    ],
+    'uc_cart_empty' => [
+      'variables' => [],
       'template' => 'uc-cart-empty',
-    ),
-    'uc_cart_review_table' => array(
-      'variables' => array('items' => array(), 'show_subtotal' => TRUE),
+    ],
+    'uc_cart_review_table' => [
+      'variables' => ['items' => [], 'show_subtotal' => TRUE],
       'file' => 'uc_cart.theme.inc',
       'function' => 'theme_uc_cart_review_table',
-    ),
-    'uc_cart_checkout_review' => array(
-      'variables' => array('panes' => NULL, 'form' => NULL),
+    ],
+    'uc_cart_checkout_review' => [
+      'variables' => ['panes' => NULL, 'form' => NULL],
       'file' => 'uc_cart.theme.inc',
       'function' => 'theme_uc_cart_checkout_review',
-    ),
-    'uc_cart_complete_sale' => array(
-      'variables' => array('message' => '', 'order' => NULL),
+    ],
+    'uc_cart_complete_sale' => [
+      'variables' => ['message' => '', 'order' => NULL],
       'template' => 'uc-cart-complete-sale',
-    ),
-  );
+    ],
+  ];
 }
 
 /**
@@ -129,11 +130,11 @@ function template_preprocess_uc_cart_block(&$variables) {
     $variables['items'][$key]['price'] = uc_currency_format($item['price']);
   }
 
-  $variables['summary_links'] = array(
+  $variables['summary_links'] = [
     '#theme' => 'links',
     '#links' => $variables['summary_links'],
-    '#attributes' => array('class' => ['cart-block-summary-links']),
-  );
+    '#attributes' => ['class' => ['cart-block-summary-links']],
+  ];
 }
 
 /**
@@ -151,7 +152,7 @@ function template_preprocess_uc_cart_complete_sale(&$variables) {
  * Default template: uc-cart-checkout-buttons.html.twig.
  */
 function template_preprocess_uc_cart_checkout_buttons(&$variables) {
-  $buttons = array();
+  $buttons = [];
   foreach (Element::children($variables['buttons']) as $button) {
     $buttons[] = $variables['buttons'][$button];
   }
@@ -163,15 +164,15 @@ function template_preprocess_uc_cart_checkout_buttons(&$variables) {
  */
 function uc_cart_preprocess_block(&$variables) {
   $cart = \Drupal::service('uc_cart.manager')->get();
-  if ($variables['plugin_id'] == 'uc_cart' && $variables['label']) {
-    $variables['label'] = array(
+  if ($variables['plugin_id'] == 'uc_cart_block' && $variables['label']) {
+    $variables['label'] = [
       '#theme' => 'uc_cart_block_title',
       '#title' => $variables['label'],
       '#show_icon' => $variables['configuration']['show_image'],
       '#cart_empty' => !$cart->getContents(),
       '#collapsible' => $variables['configuration']['collapsible'],
       '#collapsed' => $variables['configuration']['collapsed'],
-    );
+    ];
   }
 }
 
@@ -237,9 +238,9 @@ function uc_cart_uc_payment_receipt_insert(PaymentReceiptInterface $payment) {
  * Sends basic e-mail notifications if Rules is not installed.
  */
 function uc_cart_uc_checkout_complete($order) {
-  //@todo: Uncomment this conditional when Rules actually works.
+  // @todo Uncomment this conditional when Rules actually works.
   //if (!\Drupal::moduleHandler()->moduleExists('rules')) {
-    module_load_include('inc', 'uc_order', 'uc_order.rules');
+    \Drupal::moduleHandler()->loadInclude('uc_order', 'inc', 'uc_order.rules');
 
     $cart_config = \Drupal::config('uc_cart.settings');
     if ($cart_config->get('checkout_email_customer')) {

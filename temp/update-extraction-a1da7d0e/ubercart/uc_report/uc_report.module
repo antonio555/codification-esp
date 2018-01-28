@@ -19,7 +19,7 @@ use Drupal\uc_order\Entity\OrderStatus;
  * Implements hook_help().
  */
 function uc_report_help($route_name, RouteMatchInterface $route_match) {
-  $output =  '';
+  $output = '';
 
   $route = \Drupal::routeMatch()->getRouteName();
   //if (substr($route, 0, 10) == 'uc_report.') {
@@ -52,18 +52,21 @@ function uc_report_help($route_name, RouteMatchInterface $route_match) {
       case 'uc_report.customers':
         $output .= t("The following are total orders, products, sales, and average order totals for each store customer. Clicking on the header links will toggle a descending or ascending order for that column. Clicking on a customer's name will take you to a detailed list of orders that customer has made. Clicking on a customers username will take you to their account page.");
         break;
+
       case 'uc_report.products':
         $output .= t('The table lists each product listed in the store, its amount sold, how many times it has been viewed, revenue it has produced, and gross profit it has generated. If you do not see the number of views you must enable the Statistics module on the <a href=":url">module administration page</a>.', [':url' => Url::fromRoute('system.modules_list')->toString()]);
         break;
+
       case 'uc_report.sales':
         $output .= t('These are the sales for the last two days, average sales for the month, and the projected sales for the rest of the month. Further down the list you will see other sales statistics.');
         break;
+
       case 'uc_report.sales_custom_report':
         $output .= t('Expand the fieldset below to customize the date range of this report, the statuses of orders displayed, and product display options.');
         break;
     }
     if (strpos($route_name, 'admin/store/reports/sales/year') === 0) {
-      $year = $arg[5] ? $arg[5] : \Drupal::service('date.formatter')->format(REQUEST_TIME, 'custom', "Y");
+      $year = $arg[5] ? $arg[5] : \Drupal::service('date.formatter')->format(\Drupal::time()->getRequestTime(), 'custom', "Y");
       $output .= t('This is the monthly break down of sales for the year @year. Clicking on each link will take you to a list of orders during that month.', ['@year' => $year]);
     }
     $output .= '</p>';
@@ -73,7 +76,7 @@ function uc_report_help($route_name, RouteMatchInterface $route_match) {
       $output .= "<p>" . t('All reports are your local timezone, which is <b>@timezone</b>.', ['@timezone' => date_default_timezone_get()]) . "</p>";
     }
     if ($include_statuses) {
-      $statuses = array();
+      $statuses = [];
       foreach (uc_report_order_statuses() as $status) {
         $statuses[] = SafeMarkup::checkPlain(OrderStatus::load($status)->name);
       }
@@ -89,12 +92,20 @@ function uc_report_help($route_name, RouteMatchInterface $route_match) {
  * Implements hook_theme().
  */
 function uc_report_theme() {
-  return array(
-    'uc_report_product_table' => array(
-      'variables' => array('header' => NULL, 'rows' => NULL, 'attributes' => array(), 'caption' => NULL, 'colgroups' => array(), 'sticky' => TRUE, 'empty' => ''),
+  return [
+    'uc_report_product_table' => [
+      'variables' => [
+        'header' => NULL,
+        'rows' => NULL,
+        'attributes' => [],
+        'caption' => NULL,
+        'colgroups' => [],
+        'sticky' => TRUE,
+        'empty' => '',
+      ],
       'function' => 'theme_uc_report_product_table',
-    ),
-  );
+    ],
+  ];
 }
 
 /**
@@ -131,9 +142,9 @@ function theme_uc_report_product_table(array $variables) {
   // Format the table columns:
   if (count($colgroups)) {
     foreach ($colgroups as $colgroup) {
-      $attributes = array();
+      $attributes = [];
 
-      // Check if we're dealing with a simple or complex column
+      // Check if we're dealing with a simple or complex column.
       if (isset($colgroup['data'])) {
         foreach ($colgroup as $key => $value) {
           if ($key == 'data') {
@@ -148,7 +159,7 @@ function theme_uc_report_product_table(array $variables) {
         $cols = $colgroup;
       }
 
-      // Build colgroup
+      // Build colgroup.
       if (is_array($cols) && count($cols)) {
         $output .= ' <colgroup' . new Attribute($attributes) . '>';
         foreach ($cols as $col) {
@@ -173,7 +184,7 @@ function theme_uc_report_product_table(array $variables) {
         $header_count++;
       }
     }
-    $rows[] = array(array('data' => $empty, 'colspan' => $header_count, 'class' => array('empty', 'message')));
+    $rows[] = [['data' => $empty, 'colspan' => $header_count, 'class' => ['empty', 'message']]];
   }
 
   // Format the table header:
@@ -186,28 +197,29 @@ function theme_uc_report_product_table(array $variables) {
       $cell = tablesort_header($cell, $header, $ts);
       $output .= _theme_table_cell($cell, TRUE);
     }
-    // Using ternary operator to close the tags based on whether or not there are rows
+    // Using ternary operator to close the tags based on
+    // whether or not there are rows.
     $output .= (count($rows) ? " </tr></thead>\n" : "</tr>\n");
   }
   else {
-    $ts = array();
+    $ts = [];
   }
 
   // Format the table rows:
   if (count($rows)) {
     $output .= "<tbody>\n";
-    $flip = array('even' => 'odd', 'odd' => 'even');
+    $flip = ['even' => 'odd', 'odd' => 'even'];
     $class = 'even';
     foreach ($rows as $row) {
-      $attributes = array();
+      $attributes = [];
 
-      // Check if we're dealing with a simple or complex row
+      // Check if we're dealing with a simple or complex row.
       if (isset($row['data'])) {
         foreach ($row as $key => $value) {
           if ($key == 'data') {
             $cells = $value;
           }
-          // The following elseif clause is where we differ from theme_table()
+          // The following elseif clause is where we differ from theme_table().
           elseif ($key == 'primary') {
             $class = $flip[$class];
           }
@@ -220,11 +232,11 @@ function theme_uc_report_product_table(array $variables) {
         $cells = $row;
       }
       if (count($cells)) {
-        // Add odd/even class
+        // Add odd/even class.
         // We don't flip here like theme_table(), because we did that above.
         $attributes['class'][] = $class;
 
-        // Build row
+        // Build row.
         $output .= ' <tr' . new Attribute($attributes) . '>';
         $i = 0;
         foreach ($cells as $cell) {
@@ -258,33 +270,33 @@ function uc_report_page_attachments(&$page) {
 function uc_report_form_uc_store_settings_form_alter(&$form, &$form_state) {
   $report_config = \Drupal::config('uc_report.settings');
 
-  $form['reports'] = array(
+  $form['reports'] = [
     '#type' => 'details',
     '#title' => t('Report settings'),
     '#group' => 'store',
-  );
-  $form['reports']['uc_report_table_size'] = array(
+  ];
+  $form['reports']['uc_report_table_size'] = [
     '#type' => 'textfield',
     '#title' => t('Number of rows to show in reports'),
     '#description' => t('The maximum number of rows displayed on one page for a report table.'),
     '#default_value' => $report_config->get('table_size'),
     '#size' => 5,
-  );
-  $form['reports']['uc_report_reported_statuses'] = array(
+  ];
+  $form['reports']['uc_report_reported_statuses'] = [
     '#type' => 'checkboxes',
     '#title' => t('Reported statuses'),
     '#description' => t('Only orders with selected statuses will be included in reports.'),
     '#options' => OrderStatus::getOptionsList(),
     '#default_value' => $report_config->get('reported_statuses'),
     '#multiple' => TRUE,
-  );
+  ];
 }
 
 /**
  * Returns a SQL friendly array of order statuses for orders used in reports.
  */
 function uc_report_order_statuses() {
-  $statuses = array();
+  $statuses = [];
   foreach (OrderStatus::loadMultiple() as $status) {
     $statuses[] = $status->id();
   }

@@ -3,9 +3,12 @@
 namespace Drupal\uc_store\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
-use Drupal\Core\Cache\Cache;
+use Drupal\Core\PrivateKey;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Url;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a block to identify Ubercart as the store software on a site.
@@ -15,18 +18,72 @@ use Drupal\Core\Url;
  *   admin_label = @Translation("Powered by Ubercart")
  * )
  */
-class PoweredByBlock extends BlockBase {
+class PoweredByBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * The current route match.
+   *
+   * @var \Drupal\Core\Routing\RouteMatchInterface
+   */
+  protected $routeMatch;
+
+  /**
+   * The site's private key.
+   *
+   * @var \Drupal\Core\PrivateKey
+   */
+  protected $privateKey;
+
+  /**
+   * Creates a HelpBlock instance.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\PrivateKey $private_key
+   *   The site's private key.
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The current route match.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, PrivateKey $private_key, RouteMatchInterface $route_match) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $this->privateKey = $private_key;
+    $this->routeMatch = $route_match;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('private_key'),
+      $container->get('current_route_match')
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    // Contents of block don't depend on the page or user or any other
+    // cache context we have available.
+    return 0;
+  }
 
   /**
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
-      'label_display' => 0,
-      'cache' => array(
-        'max_age' => Cache::PERMANENT,
-      )
-    );
+    return [
+      'label_display' => FALSE,
+      'message' => 0,
+    ];
   }
 
   /**
@@ -35,16 +92,16 @@ class PoweredByBlock extends BlockBase {
   public function blockForm($form, FormStateInterface $form_state) {
     $configuration = $this->configuration;
 
-    $form['message'] = array(
+    $form['message'] = [
       '#type' => 'radios',
       '#title' => $this->t('Footer message for store pages'),
       '#options' => array_merge(
-        array(0 => $this->t('Randomly select a message from the list below.')),
+        [0 => $this->t('Randomly select a message from the list below.')],
         $this->options()
       ),
       '#default_value' => isset($configuration['message']) ? $configuration['message'] : '',
       '#weight' => 10,
-    );
+    ];
 
     return $form;
   }
@@ -63,7 +120,7 @@ class PoweredByBlock extends BlockBase {
     $id = $this->configuration['message'];
 
     // Figure out what page is being viewed.
-    $path = \Drupal::routeMatch()->getRouteName();
+    $path = $this->routeMatch->getRouteName();
 
     $messages = $this->options();
 
@@ -71,32 +128,33 @@ class PoweredByBlock extends BlockBase {
       // Calculate which message to show based on a hash of the path and the
       // site's private key. The message initially chosen for each page on a
       // specific site will thus be pseudo-random, yet we will consistently
-      // display the same message on any given page on that site.
-      $private_key = \Drupal::service('private_key')->get();
+      // display the same message on any given page on that site, thus allowing
+      // pages to be cached.
+      $private_key = $this->privateKey->get();
       $id = (hexdec(substr(md5($path . $private_key), 0, 2)) % count($messages)) + 1;
     }
 
-    return array('#markup' => $messages[$id]);
+    return ['#markup' => $messages[$id]];
   }
 
   /**
    * Returns the default message options.
    */
   protected function options() {
-    $url = array(':url' => Url::fromUri('http://www.ubercart.org/')->toString());
-    return array(
+    $url = [':url' => Url::fromUri('https://www.drupal.org/project/ubercart')->toString()];
+    return [
       1 => $this->t('<a href=":url">Powered by Ubercart</a>', $url),
       2 => $this->t('<a href=":url">Drupal e-commerce</a> provided by Ubercart.', $url),
       3 => $this->t('Supported by Ubercart, an <a href=":url">open source e-commerce suite</a>.', $url),
       4 => $this->t('Powered by Ubercart, the <a href=":url">free shopping cart software</a>.', $url),
-    );
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getRequiredCacheContexts() {
-    return array('url');
+    return ['url'];
   }
 
 }

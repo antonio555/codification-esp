@@ -8,6 +8,9 @@ use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\uc_cart\Entity\CartItem;
 
+/**
+ * Utility class providing methods for the manangement of shopping carts.
+ */
 class Cart implements CartInterface {
 
   /**
@@ -38,7 +41,7 @@ class Cart implements CartInterface {
    * {@inheritdoc}
    */
   public function getContents() {
-    $items = array();
+    $items = [];
 
     $result = \Drupal::entityQuery('uc_cart_item')
       ->condition('cart_id', $this->id)
@@ -58,15 +61,16 @@ class Cart implements CartInterface {
   /**
    * {@inheritdoc}
    */
-  public function addItem($nid, $qty = 1, $data = NULL, $msg = TRUE) {
+  public function addItem($nid, $qty = 1, array $data = NULL, $msg = TRUE) {
     $node = Node::load($nid);
 
     if (is_null($data) || !isset($data['module'])) {
       $data['module'] = 'uc_product';
     }
 
-    // Invoke hook_uc_add_to_cart() to give other modules a chance to affect the process.
-    $result = \Drupal::moduleHandler()->invokeAll('uc_add_to_cart', array($nid, $qty, $data));
+    // Invoke hook_uc_add_to_cart() to give other modules a chance
+    // to affect the process.
+    $result = \Drupal::moduleHandler()->invokeAll('uc_add_to_cart', [$nid, $qty, $data]);
     if (is_array($result) && !empty($result)) {
       foreach ($result as $row) {
         if ($row['success'] === FALSE) {
@@ -91,8 +95,8 @@ class Cart implements CartInterface {
     }
 
     // Now we can go ahead and add the item because either:
-    //   1) No modules implemented hook_uc_add_to_cart(), or
-    //   2) All modules implementing that hook want this item added.
+    // 1) No modules implemented hook_uc_add_to_cart(), or
+    // 2) All modules implementing that hook want this item added.
     $result = \Drupal::entityQuery('uc_cart_item')
       ->condition('cart_id', $this->id)
       ->condition('nid', $nid)
@@ -101,12 +105,12 @@ class Cart implements CartInterface {
 
     if (empty($result)) {
       // If the item isn't in the cart yet, add it.
-      $item_entity = CartItem::create(array(
+      $item_entity = CartItem::create([
         'cart_id' => $this->id,
         'nid' => $nid,
         'qty' => $qty,
         'data' => $data,
-      ));
+     ]);
       $item_entity->save();
       if ($msg) {
         drupal_set_message(t('<strong>@product-title</strong> added to <a href=":url">your shopping cart</a>.', ['@product-title' => $node->label(), ':url' => Url::fromRoute('uc_cart.cart')->toString()]));
@@ -119,7 +123,7 @@ class Cart implements CartInterface {
       }
       $item_entity = CartItem::load(current(array_keys($result)));
       $qty += $item_entity->qty->value;
-      \Drupal::moduleHandler()->invoke($data['module'], 'uc_update_cart_item', array($nid, $data, min($qty, 999999), $this->id));
+      \Drupal::moduleHandler()->invoke($data['module'], 'uc_update_cart_item', [$nid, $data, min($qty, 999999), $this->id]);
     }
 
     // Invalidate the cache.
@@ -137,14 +141,14 @@ class Cart implements CartInterface {
    * Computes the destination Url for an add-to-cart action.
    *
    * Redirect Url is chosen in the following order:
-   *  - Query parameter "destination"
-   *  - Cart config variable "uc_cart.settings.add_item_redirect"
+   * - Query parameter "destination"
+   * - Cart config variable "uc_cart.settings.add_item_redirect"
    *
    * @return \Drupal\Core\Url
    *   A Url destination for redirection.
    */
   protected function getAddItemRedirect() {
-    // Check for destination= query string
+    // Check for 'destination=' query string.
     $query = \Drupal::request()->query;
     $destination = $query->get('destination');
     if (!empty($destination)) {

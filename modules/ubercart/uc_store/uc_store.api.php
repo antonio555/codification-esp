@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Render\Element;
+use Drupal\node\Entity\Node;
 
 /**
  * @addtogroup hooks
@@ -24,10 +25,10 @@ use Drupal\Core\Render\Element;
  * @see hook_form_alter()
  */
 function hook_uc_form_alter(&$form, &$form_state, $form_id) {
-  // If the node has a product list, add attributes to them
+  // If the node has a product list, add attributes to them.
   if (isset($form['products']) && count(Element::children($form['products']))) {
     foreach (Element::children($form['products']) as $key) {
-      $form['products'][$key]['attributes'] = _uc_attribute_alter_form(node_load($key));
+      $form['products'][$key]['attributes'] = _uc_attribute_alter_form(Node::load($key));
       if (is_array($form['products'][$key]['attributes'])) {
         $form['products'][$key]['attributes']['#tree'] = TRUE;
         $form['products'][$key]['#type'] = 'details';
@@ -60,7 +61,7 @@ function hook_uc_form_alter(&$form, &$form_state, $form_id) {
  * catalog taxonomy vocabulary, it will show an error message here to alert the
  * store administrator.
  *
- * @return
+ * @return array
  *   An array of store status items which are arrays with the following keys:
  *   - status: "ok", "warning", or "error" depending on the message.
  *   - title: The title of the status message or module that defines it.
@@ -69,11 +70,11 @@ function hook_uc_form_alter(&$form, &$form_state, $form_id) {
  */
 function hook_uc_store_status() {
   if ($key = uc_credit_encryption_key()) {
-    $statuses[] = array(
+    $statuses[] = [
       'status' => 'ok',
       'title' => t('Credit card encryption'),
       'desc' => t('Credit card data in the database is currently being encrypted.'),
-    );
+    ];
   }
   return $statuses;
 }

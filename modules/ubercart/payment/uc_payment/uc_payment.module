@@ -16,6 +16,7 @@ use Drupal\uc_order\Entity\Order;
 use Drupal\uc_order\OrderInterface;
 use Drupal\uc_payment\Entity\PaymentMethod;
 use Drupal\uc_payment\Entity\PaymentReceipt;
+use Drupal\uc_payment\Event\PaymentEnteredEvent;
 use Drupal\uc_payment\ExpressPaymentMethodPluginInterface;
 use Drupal\uc_payment\Form\OffsitePaymentMethodForm;
 use Drupal\uc_payment\OffsitePaymentMethodPluginInterface;
@@ -25,12 +26,12 @@ use Drupal\uc_payment\PaymentReceiptInterface;
  * Implements hook_theme().
  */
 function uc_payment_theme() {
-  return array(
-    'uc_payment_totals' => array(
-      'variables' => array('order' => NULL),
+  return [
+    'uc_payment_totals' => [
+      'variables' => ['order' => NULL],
       'template' => 'uc-payment-totals',
-    ),
-  );
+    ],
+  ];
 }
 
 /**
@@ -125,7 +126,7 @@ function uc_payment_uc_payment_method_checkout_alter(array &$methods, OrderInter
  * @param int $order_id
  *   The order ID to apply the payment to.
  * @param string $method
- *   The payment method ID.
+ *   The payment method plugin ID.
  * @param float $amount
  *   The amount of the payment.
  * @param int $uid
@@ -142,7 +143,10 @@ function uc_payment_uc_payment_method_checkout_alter(array &$methods, OrderInter
  * @return string
  *   A unique ID identifying the PaymentReceipt entity.
  */
-function uc_payment_enter($order_id, $method, $amount, $uid = 0, $data = NULL, $comment = '', $received = REQUEST_TIME) {
+function uc_payment_enter($order_id, $method, $amount, $uid = 0, array $data = NULL, $comment = '', $received = NULL) {
+  if (is_null($received)) {
+    $received = \Drupal::time()->getRequestTime();
+  }
   $order = Order::load($order_id);
   $receipt = PaymentReceipt::create([
     'order_id' => $order_id,
@@ -165,18 +169,26 @@ function uc_payment_uc_payment_receipt_insert(PaymentReceiptInterface $payment) 
   $order = $payment->getOrder();
 
   // Log a message against the order.
-  $method_name = $payment->getMethod() ? $payment->getMethod()->getPlugin()->cartReviewTitle() : t('Other');
-  $log_message = t('@method payment for @amount entered.', array('@method' => $method_name, '@amount' => uc_currency_format($payment->getAmount())));
-  $order->logChanges(array($log_message));
+  $method_name = $payment->getMethod() ? $payment->getMethod()->cartReviewTitle() : t('Other');
+  $log_message = t('@method payment for @amount entered.', ['@method' => $method_name, '@amount' => uc_currency_format($payment->getAmount())]);
+  $order->logChanges([$log_message]);
 
-  // Automatically mark paid orders as "payment received".
-  // @todo Remove when Rules is available.
-  if (uc_payment_balance($order) <= 0) {
-    $state = $order->getStateId();
-    if ($state == 'in_checkout' || $state == 'post_checkout') {
-      $order->setStatusId('payment_received')->save();
+  //\Drupal::moduleHandler()->invokeAll('uc_payment_entered', [$order, $method, $amount, $order->getOwner(), $data, $comment]);
+  /* rules_invoke_event('uc_payment_entered', $order, $account); */
+  $event = new PaymentEnteredEvent($order, $order->getOwner());
+  \Drupal::service('event_dispatcher')->dispatch($event::EVENT_NAME, $event);
+
+  // @todo Uncomment this if{} statement when Rules is working.
+  // Automatically mark paid orders as "payment received"
+  // if Rules is not available.
+  //if (!\Drupal::moduleHandler()->moduleExists('rules')) {
+    if (uc_payment_balance($order) <= 0) {
+      $state = $order->getStateId();
+      if ($state == 'in_checkout' || $state == 'post_checkout') {
+        $order->setStatusId('payment_received')->save();
+      }
     }
-  }
+  //}
 }
 
 /**
@@ -186,9 +198,9 @@ function uc_payment_uc_payment_receipt_delete(PaymentReceiptInterface $payment) 
   $order = $payment->getOrder();
 
   // Log a message against the order.
-  $method_name = $payment->getMethod() ? $payment->getMethod()->getPlugin()->cartReviewTitle() : t('Other');
-  $log_message = t('@method payment for @amount deleted.', array('@method' => $method_name, '@amount' => uc_currency_format($payment->getAmount())));
-  $order->logChanges(array($log_message));
+  $method_name = $payment->getMethod() ? $payment->getMethod()->cartReviewTitle() : t('Other');
+  $log_message = t('@method payment for @amount deleted.', ['@method' => $method_name, '@amount' => uc_currency_format($payment->getAmount())]);
+  $order->logChanges([$log_message]);
 }
 
 /**
@@ -210,11 +222,14 @@ function uc_payment_uc_order_presave(OrderInterface $order) {
     \Drupal::service('plugin.manager.uc_payment.method')->createFromOrder($order)->orderSave($order);
   }
 
-  // Move non-shippable orders from "payment received" to "completed".
-  // @todo Remove when Rules is available.
-  if ($order->getStatusId() == 'payment_received' && !$order->isShippable()) {
-    $order->setStatusId('completed');
-  }
+  // @todo Uncomment this if{} statement when Rules is working.
+  // Automatically move non-shippable orders from "payment received" to
+  // "completed" if Rules is not available.
+  //if (!\Drupal::moduleHandler()->moduleExists('rules')) {
+    if ($order->getStatusId() == 'payment_received' && !$order->isShippable()) {
+      $order->setStatusId('completed');
+    }
+  //}
 }
 
 /**
@@ -294,7 +309,7 @@ function uc_payment_balance(OrderInterface $order) {
 function uc_payment_load_payments($order_id) {
   $result = \Drupal::entityQuery('uc_payment_receipt')
     ->condition('order_id', $order_id)
-    ->sort('received')
+    ->sort('receipt_id')
     ->execute();
 
   if (!empty($result)) {

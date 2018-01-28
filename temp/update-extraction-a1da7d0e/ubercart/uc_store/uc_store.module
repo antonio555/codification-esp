@@ -21,83 +21,146 @@ use Drupal\uc_store\Address;
  * Weight unit conversion constants, used by uc_weight_conversion().
  */
 
-/** Converts kilograms to kilograms. */
-define('KG_TO_KG', 1);
-/** Converts kilograms to grams. */
-define('KG_TO_G',  1000);
-/** Converts kilograms to pounds. */
-define('KG_TO_LB', 2.204622621849);
-/** Converts kilograms to ounces. */
-define('KG_TO_OZ', 35.27396194958);
+/**
+ * Converts kilograms to kilograms.
+ */
+define('UC_STORE_KG_TO_KG', 1);
+/**
+ * Converts kilograms to grams.
+ */
+define('UC_STORE_KG_TO_G', 1000);
+/**
+ * Converts kilograms to pounds.
+ */
+define('UC_STORE_KG_TO_LB', 2.204622621849);
+/**
+ * Converts kilograms to ounces.
+ */
+define('UC_STORE_KG_TO_OZ', 35.27396194958);
 
-/** Converts grams to grams. */
-define('G_TO_G',   1);
-/** Converts grams to kilograms. */
-define('G_TO_KG',  0.001);
-/** Converts grams to pounds. */
-define('G_TO_LB',  0.002204622622);
-/** Converts grams to ounces. */
-define('G_TO_OZ',  0.03527396195);
+/**
+ * Converts grams to grams.
+ */
+define('UC_STORE_G_TO_G', 1);
+/**
+ * Converts grams to kilograms.
+ */
+define('UC_STORE_G_TO_KG', 0.001);
+/**
+ * Converts grams to pounds.
+ */
+define('UC_STORE_G_TO_LB', 0.002204622622);
+/**
+ * Converts grams to ounces.
+ */
+define('UC_STORE_G_TO_OZ', 0.03527396195);
 
-/** Converts pounds to pounds. */
-define('LB_TO_LB', 1);
-/** Converts pounds to ounces. */
-define('LB_TO_OZ', 16);
-/** Converts pounds to kilograms. */
-define('LB_TO_KG', 0.45359237);
-/** Converts pounds to grams. */
-define('LB_TO_G',  453.59237);
+/**
+ * Converts pounds to pounds.
+ */
+define('UC_STORE_LB_TO_LB', 1);
+/**
+ * Converts pounds to ounces.
+ */
+define('UC_STORE_LB_TO_OZ', 16);
+/**
+ * Converts pounds to kilograms.
+ */
+define('UC_STORE_LB_TO_KG', 0.45359237);
+/**
+ * Converts pounds to grams.
+ */
+define('UC_STORE_LB_TO_G', 453.59237);
 
-/** Converts ounces to ounces. */
-define('OZ_TO_OZ', 1);
-/** Converts ounces to pounds. */
-define('OZ_TO_LB', 0.0625);
-/** Converts ounces to kilograms. */
-define('OZ_TO_KG', 0.028349523);
-/** Converts ounces to grams. */
-define('OZ_TO_G',  28.349523125);
+/**
+ * Converts ounces to ounces.
+ */
+define('UC_STORE_OZ_TO_OZ', 1);
+/**
+ * Converts ounces to pounds.
+ */
+define('UC_STORE_OZ_TO_LB', 0.0625);
+/**
+ * Converts ounces to kilograms.
+ */
+define('UC_STORE_OZ_TO_KG', 0.028349523);
+/**
+ * Converts ounces to grams.
+ */
+define('UC_STORE_OZ_TO_G', 28.349523125);
 
 
 /**
  * Length unit conversion constants, used by uc_length_conversion().
  */
 
-/** Converts inches to inches. */
-define('IN_TO_IN', 1);
-/** Converts inches to feet. */
-define('IN_TO_FT', 0.083333333333);
-/** Converts inches to centimeters. */
-define('IN_TO_CM', 2.54);
-/** Converts inches to millimeters. */
-define('IN_TO_MM', 25.4);
+/**
+ * Converts inches to inches.
+ */
+define('UC_STORE_IN_TO_IN', 1);
+/**
+ * Converts inches to feet.
+ */
+define('UC_STORE_IN_TO_FT', 0.083333333333);
+/**
+ * Converts inches to centimeters.
+ */
+define('UC_STORE_IN_TO_CM', 2.54);
+/**
+ * Converts inches to millimeters.
+ */
+define('UC_STORE_IN_TO_MM', 25.4);
 
-/** Converts feet to feet. */
-define('FT_TO_FT', 1);
-/** Converts feet to inches. */
-define('FT_TO_IN', 12);
-/** Converts feet to centimeters. */
-define('FT_TO_CM', 30.48);
-/** Converts feet to millimeters. */
-define('FT_TO_MM', 304.8);
+/**
+ * Converts feet to feet.
+ */
+define('UC_STORE_FT_TO_FT', 1);
+/**
+ * Converts feet to inches.
+ */
+define('UC_STORE_FT_TO_IN', 12);
+/**
+ * Converts feet to centimeters.
+ */
+define('UC_STORE_FT_TO_CM', 30.48);
+/**
+ * Converts feet to millimeters.
+ */
+define('UC_STORE_FT_TO_MM', 304.8);
 
-/** Converts centimeters to centimeters. */
-define('CM_TO_CM', 1);
-/** Converts centimeters to inches. */
-define('CM_TO_IN', 0.393700787402);
-/** Converts centimeters to feet. */
-define('CM_TO_FT', 0.03280839895);
-/** Converts centimeters to millimeters. */
-define('CM_TO_MM', 10);
+/**
+ * Converts centimeters to centimeters.
+ */
+define('UC_STORE_CM_TO_CM', 1);
+/**
+ * Converts centimeters to inches.
+ */
+define('UC_STORE_CM_TO_IN', 0.393700787402);
+/**
+ * Converts centimeters to feet.
+ */
+define('UC_STORE_CM_TO_FT', 0.03280839895);
+/**
+ * Converts centimeters to millimeters.
+ */
+define('UC_STORE_CM_TO_MM', 10);
 
-/** Converts millimeters to millimeters. */
-define('MM_TO_MM', 1);
-/** Converts millimeters to inches. */
-define('MM_TO_IN', 0.03937007874);
-/** Converts millimeters to feet. */
-define('MM_TO_FT', 0.003280839895);
-/** Converts millimeters to centimeters. */
-define('MM_TO_CM', 0.1);
-
+/**
+ * Converts millimeters to millimeters.
+ */
+define('UC_STORE_MM_TO_MM', 1);
+/**
+ * Converts millimeters to inches.
+ */
+define('UC_STORE_MM_TO_IN', 0.03937007874);
+/**
+ * Converts millimeters to feet.
+ */
+define('UC_STORE_MM_TO_FT', 0.003280839895);
+/**
+ * Converts millimeters to centimeters.
+ */
+define('UC_STORE_MM_TO_CM', 0.1);
 
 /**
  * Implements hook_page_attachments().
@@ -110,16 +173,16 @@ function uc_store_page_attachments(&$page) {
  * Implements hook_theme().
  */
 function uc_store_theme() {
-  return array(
-    'uc_price' => array(
-      'variables' => array('price' => 0, 'suffixes' => array()),
+  return [
+    'uc_price' => [
+      'variables' => ['price' => 0, 'suffixes' => []],
       'template' => 'uc-price',
-    ),
-    'uc_qty' => array(
-      'variables' => array('qty' => 1),
+    ],
+    'uc_qty' => [
+      'variables' => ['qty' => 1],
       'template' => 'uc-qty',
-    ),
-  );
+    ],
+  ];
 }
 
 /**
@@ -140,15 +203,15 @@ function uc_store_help($route_name, RouteMatchInterface $route_match) {
       $output = '<h3>' . t('Ubercart') . '</h3>';
       $output .= '<p>' . t('Use the following links to find documentation and support:') . '</p>';
       $output .= '<ul>';
-      $output .= '<li>' . Link::fromTextAndUrl(t("Ubercart User's Guide"), Url::fromUri('http://www.ubercart.org/docs/user'))->toString() . '</li>';
+      $output .= '<li>' . Link::fromTextAndUrl(t("Ubercart User's Guide"), Url::fromUri('https://www.drupal.org/docs/8/modules/ubercart'))->toString() . '</li>';
       $output .= '<li>' . Link::fromTextAndUrl(t('Support Forums'), Url::fromUri('http://www.ubercart.org/forum'))->toString() . '</li>';
       $output .= '</ul>';
       return $output;
 
     case 'uc_store.reports':
-      $output = '<p>' . t('Various reports generated by Ubercart modules can be found here. Click the links below to view the reports.') . '</p>';
+      $output = '<p>' . t('Various reports generated by Ubercart modules may be found on this page. Click the links below to view the reports.') . '</p>';
       if (!\Drupal::moduleHandler()->moduleExists('uc_report')) {
-        $output .= '<p>' . t('To view core Ubercart statistics enable the <strong>Reports</strong> module on the <a href=":url">module administration page</a>.', [':url' => Url::fromRoute('system.modules_list', [], ['fragment' => 'edit-modules-ubercart-core-optional'])->toString()]) . '</p>';
+        $output .= '<p>' . t('To view core Ubercart statistics enable the <strong>Report</strong> module on the <a href=":url">module administration page</a>.', [':url' => Url::fromRoute('system.modules_list', [], ['fragment' => 'edit-modules-ubercart-core-optional'])->toString()]) . '</p>';
       }
       return $output;
   }
@@ -275,11 +338,20 @@ function uc_weight_format($value, $unit = NULL, $thou = NULL, $dec = NULL) {
 
   // Add the units last.
   switch ($unit) {
-    case 'lb': return t('@value lb.', ['@value' => $output]);
-    case 'oz': return t('@value oz.', ['@value' => $output]);
-    case 'kg': return t('@valuekg', ['@value' => $output]);
-    case 'g':  return t('@valueg', ['@value' => $output]);
-    default:   return $value;
+    case 'lb':
+      return t('@value lb.', ['@value' => $output]);
+
+    case 'oz':
+      return t('@value oz.', ['@value' => $output]);
+
+    case 'kg':
+      return t('@valuekg', ['@value' => $output]);
+
+    case 'g':
+      return t('@valueg', ['@value' => $output]);
+
+    default:
+      return $value;
   }
 }
 
@@ -290,7 +362,7 @@ function uc_weight_conversion($from_units, $to_units = NULL) {
   if (is_null($to_units)) {
     $to_units = \Drupal::config('uc_store.settings')->get('weight.units');
   }
-  $constant = strtoupper($from_units) . '_TO_' . strtoupper($to_units);
+  $constant = 'UC_STORE_' . strtoupper($from_units) . '_TO_' . strtoupper($to_units);
   if (defined($constant) && ($conversion = constant($constant)) > 0) {
     return $conversion;
   }
@@ -351,10 +423,17 @@ function uc_length_format($value, $unit = NULL, $thou = NULL, $dec = NULL) {
 
   // Add the units last.
   switch ($unit) {
-    case 'in': return t('@valuein.', ['@value' => $output]);
-    case 'ft': return t('@valueft.', ['@value' => $output]);
-    case 'cm': return t('@valuecm', ['@value' => $output]);
-    case 'mm':  return t('@valuemm', ['@value' => $output]);
+    case 'in':
+      return t('@valuein.', ['@value' => $output]);
+
+    case 'ft':
+      return t('@valueft.', ['@value' => $output]);
+
+    case 'cm':
+      return t('@valuecm', ['@value' => $output]);
+
+    case 'mm':
+      return t('@valuemm', ['@value' => $output]);
   }
 }
 
@@ -365,7 +444,7 @@ function uc_length_conversion($from_units, $to_units = NULL) {
   if (is_null($to_units)) {
     $to_units = \Drupal::config('uc_store.settings')->get('length.units');
   }
-  $constant = strtoupper($from_units) . '_TO_' . strtoupper($to_units);
+  $constant = 'UC_STORE_' . strtoupper($from_units) . '_TO_' . strtoupper($to_units);
   if (defined($constant) && ($conversion = constant($constant)) > 0) {
     return $conversion;
   }
@@ -386,7 +465,7 @@ function uc_address_field_enabled($field = NULL) {
  *
  * @param $uid
  *   The user's ID to search for in the orders table.
- * @param $type
+ * @param string $type
  *   Choose either 'shipping' or 'billing'.
  */
 function uc_select_address($uid, $type = 'billing', $onchange = '', $title = NULL) {
@@ -396,7 +475,7 @@ function uc_select_address($uid, $type = 'billing', $onchange = '', $title = NUL
     return NULL;
   }
 
-  $options = array('0' => t('Select one...'));
+  $options = ['0' => t('Select one...')];
   foreach ($addresses as $key => $address) {
     $option = $address['street1'];
     // Check if the address is a duplicate (i.e. same address, but sent to
@@ -408,12 +487,12 @@ function uc_select_address($uid, $type = 'billing', $onchange = '', $title = NUL
     $options[Json::encode($address)] = SafeMarkup::checkPlain($option);
   }
 
-  $select = array(
+  $select = [
     '#type' => 'select',
     '#title' => is_null($title) ? t('Address book') : $title,
     '#options' => $options,
-    '#attributes' => array('onchange' => $onchange),
-  );
+    '#attributes' => ['onchange' => $onchange],
+  ];
 
   return $select;
 }
@@ -433,10 +512,10 @@ function uc_select_addresses($uid, $type = 'billing') {
   $addresses = uc_get_addresses($uid, $type);
 
   if (empty($addresses)) {
-    return array();
+    return [];
   }
 
-  $options = array(-1 => t('Select one...'));
+  $options = [-1 => t('Select one...')];
   foreach ($addresses as $key => $address) {
     $option = $address['street1'];
     // Check if the address is a duplicate (i.e. same address, but sent to
@@ -470,7 +549,7 @@ function uc_get_addresses($uid, $type = 'billing') {
 
   $query = db_select('uc_orders', 'o')->distinct();
 
-  $alias = array();
+  $alias = [];
   $alias['first_name'] = $query->addField('o', $type . '_first_name', 'first_name');
   $alias['last_name'] = $query->addField('o', $type . '_last_name', 'last_name');
   $alias['phone'] = $query->addField('o', $type . '_phone', 'phone');
@@ -495,7 +574,7 @@ function uc_get_addresses($uid, $type = 'billing') {
 
   $result = $query->execute();
 
-  $addresses = array();
+  $addresses = [];
   while ($address = $result->fetchAssoc()) {
     if (!empty($address['street1']) || !empty($address['postal_code'])) {
       $addresses[] = $address;
@@ -640,7 +719,7 @@ function uc_store_encryption_errors(&$crypt, $module) {
       $items[] = $message;
     }
     \Drupal::logger('encryption')->error('Encryption failed.');
-    // @todo Fix formatting of logger message
+    // @todo Fix formatting of logger message.
     //\Drupal::logger('encryption')->error('Encryption failed. @messages', ['@messages' => drupal_render(['#theme' => 'item_list', '#items' => $items])]);
   }
 }
@@ -690,9 +769,9 @@ function uc_form_alter(&$form, &$form_state, $form_id) {
  * Implements hook_uc_store_status().
  */
 function uc_store_uc_store_status() {
-  $messages = array();
+  $messages = [];
 
-  // @TODO Does it make sense to check for updated config files (check uuid?)
+  // @todo Does it make sense to check for updated config files (check uuid?)
   // How else do we know if Ubercart has corrected country data? Wouldn't want
   // to hook_update it I don't think, because then we'd overwrite any site
   // customizations. Leaving this as a dead code block for now...
@@ -705,35 +784,35 @@ function uc_store_uc_store_status() {
       'desc'   => t('No countries are enabled. You may enable countries on the <a href=":url">country settings</a> page.', [':url' => Url::fromRoute('entity.uc_country.collection')->toString()]),
     ];
   }
-  elseif (count($updates)) { // This will always == FALSE
-    $messages[] = array(
+  elseif (count($updates)) { // This will always == FALSE.
+    $messages[] = [
       'status' => 'warning',
       'title'  => t('Countries'),
       'desc'   => t('Updates are available for the following installed countries: %countries. You may update these countries on the <a href=":url">country settings</a> page.', ['%countries' => implode(', ', $updates), ':url' => Url::fromRoute('entity.uc_country.collection')->toString()]),
-    );
+    ];
   }
   else {
-    $messages[] = array(
+    $messages[] = [
       'status' => 'ok',
       'title'  => t('Countries'),
       'desc'   => t('Country definitions are up-to-date.'),
-    );
+    ];
   }
 
   // Check to see if the store e-mail address has been set.
   if (!\Drupal::config('uc_store.settings')->get('mail')) {
-    $messages[] = array(
+    $messages[] = [
       'status' => 'error',
       'title'  => t('Store settings'),
       'desc'   => t('Store e-mail address has not been set. Please enter it on the <a href=":url">store settings</a> page.', [':url' => Url::fromRoute('uc_store.config_form')->toString()]),
-    );
+    ];
   }
   else {
-    $messages[] = array(
+    $messages[] = [
       'status' => 'ok',
       'title'  => t('Store settings'),
       'desc'   => t('Store e-mail address is set.'),
-    );
+    ];
   }
 
   return $messages;

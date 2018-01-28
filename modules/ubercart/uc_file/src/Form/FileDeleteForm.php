@@ -60,8 +60,8 @@ class FileDeleteForm extends ConfirmFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $file_ids = array_filter($form_state->getValue('file_select'));
 
-    $form['file_ids'] = array('#type' => 'value', '#value' => $file_ids);
-    $form['action'] = array('#type' => 'value', '#value' => $form_state->getValue(['uc_file_action', 'action']));
+    $form['file_ids'] = ['#type' => 'value', '#value' => $file_ids];
+    $form['action'] = ['#type' => 'value', '#value' => $form_state->getValue(['uc_file_action', 'action'])];
 
     $file_ids = _uc_file_sort_names(_uc_file_get_dir_file_ids($file_ids, FALSE));
 
@@ -72,7 +72,7 @@ class FileDeleteForm extends ConfirmFormBase {
       // Gather a list of user-selected filenames.
       $file = uc_file_get_by_id($file_id);
       $filename = $file->filename;
-      $file_list[] = (substr($filename, -1) == "/") ? $filename . ' (' . $this->t('directory') . ')' : $filename;
+      $file_list[] = (substr($filename, -1) == '/') ? $filename . ' (' . $this->t('directory') . ')' : $filename;
 
       // Determine if there are any directories in this list.
       $path = uc_file_qualify_file($filename);
@@ -82,32 +82,32 @@ class FileDeleteForm extends ConfirmFormBase {
     }
 
     // Base files/dirs the user selected.
-    $form['selected_files'] = array(
+    $form['selected_files'] = [
       '#theme' => 'item_list',
       '#items' => $file_list,
-      '#attributes' => array(
-        'class' => array('selected-file-name'),
-      ),
-    );
+      '#attributes' => [
+        'class' => ['selected-file-name'],
+      ],
+    ];
 
     // Don't even show the recursion checkbox unless we have any directories.
-    if ($has_directory && $affected_list[TRUE] !== FALSE ) {
-      $form['recurse_directories'] = array(
+    if ($has_directory && $affected_list[TRUE] !== FALSE) {
+      $form['recurse_directories'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Delete selected directories and their sub directories'),
-      );
+      ];
 
       // Default to FALSE. Although we have the JS behavior to update with the
       // state of the checkbox on load, this should improve the experience of
       // users who don't have JS enabled over not defaulting to any info.
-      $form['affected_files'] = array(
+      $form['affected_files'] = [
         '#theme' => 'item_list',
         '#items' => $affected_list[FALSE],
         '#title' => $this->t('Affected files'),
-        '#attributes' => array(
-          'class' => array('affected-file-name'),
-        ),
-      );
+        '#attributes' => [
+          'class' => ['affected-file-name'],
+        ],
+      ];
     }
 
     return parent::buildForm($form, $form_state);
@@ -135,7 +135,7 @@ class FileDeleteForm extends ConfirmFormBase {
   }
 
   /**
-   * TODO: Replace with == operator?
+   * @todo Replace with == operator?
    */
   protected function displayArraysEquivalent($recur, $no_recur) {
 
@@ -189,4 +189,5 @@ class FileDeleteForm extends ConfirmFormBase {
 
     return $result;
   }
+
 }

@@ -6,7 +6,6 @@ use Drupal\Core\Config\Entity\DraggableListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\uc_tax\Plugin\TaxRatePluginManager;
@@ -15,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Provides a listing of tax rate entities.
  */
-class TaxRateListBuilder extends DraggableListBuilder implements FormInterface {
+class TaxRateListBuilder extends DraggableListBuilder {
 
   /**
    * The tax rate plugin manager.
@@ -61,27 +60,27 @@ class TaxRateListBuilder extends DraggableListBuilder implements FormInterface {
    * {@inheritdoc}
    */
   public function buildHeader() {
-    $header['label'] = array(
+    $header['label'] = [
       'data' => $this->t('Name'),
-    );
-    $header['description'] = array(
+    ];
+    $header['description'] = [
       'data' => $this->t('Description'),
-    );
-    $header['shippable'] = array(
+    ];
+    $header['shippable'] = [
       'data' => $this->t('Taxed products'),
-      'class' => array(RESPONSIVE_PRIORITY_LOW),
-    );
-    $header['product_types'] = array(
+      'class' => [RESPONSIVE_PRIORITY_LOW],
+    ];
+    $header['product_types'] = [
       'data' => $this->t('Taxed product types'),
-      'class' => array(RESPONSIVE_PRIORITY_LOW),
-    );
-    $header['line_item_types'] = array(
+      'class' => [RESPONSIVE_PRIORITY_LOW],
+    ];
+    $header['line_item_types'] = [
       'data' => $this->t('Taxed line items'),
-      'class' => array(RESPONSIVE_PRIORITY_LOW),
-    );
-    $header['status'] = array(
+      'class' => [RESPONSIVE_PRIORITY_LOW],
+    ];
+    $header['status'] = [
       'data' => $this->t('Status'),
-    );
+    ];
     return $header + parent::buildHeader();
   }
 
@@ -105,11 +104,11 @@ class TaxRateListBuilder extends DraggableListBuilder implements FormInterface {
    */
   public function buildOperations(EntityInterface $entity) {
     $build = parent::buildOperations($entity);
-    $build['#links']['clone'] = array(
+    $build['#links']['clone'] = [
       'title' => $this->t('Clone'),
       'url' => Url::fromRoute('entity.uc_tax_rate.clone', ['uc_tax_rate' => $entity->id()]),
       'weight' => 10, // 'edit' is 0, 'delete' is 100
-    );
+    ];
 
     uasort($build['#links'], 'Drupal\Component\Utility\SortArray::sortByWeightElement');
     return $build;
@@ -124,37 +123,37 @@ class TaxRateListBuilder extends DraggableListBuilder implements FormInterface {
     }, $this->taxRatePluginManager->getDefinitions());
     uasort($options, 'strnatcasecmp');
 
-    $form['add'] = array(
+    $form['add'] = [
       '#type' => 'details',
       '#title' => $this->t('Add a tax rate'),
       '#open' => TRUE,
-      '#attributes' => array(
-        'class' => array('container-inline'),
-      ),
-    );
-    $form['add']['plugin'] = array(
+      '#attributes' => [
+        'class' => ['container-inline'],
+      ],
+    ];
+    $form['add']['plugin'] = [
       '#type' => 'select',
       '#title' => $this->t('Type'),
       '#empty_option' => $this->t('- Choose -'),
       '#options' => $options,
-    );
-    $form['add']['submit'] = array(
+    ];
+    $form['add']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Add tax rate'),
-      '#validate' => array('::validateAddMethod'),
-      '#submit' => array('::submitAddMethod'),
-      '#limit_validation_errors' => array(array('plugin')),
-    );
+      '#validate' => ['::validateAddMethod'],
+      '#submit' => ['::submitAddMethod'],
+      '#limit_validation_errors' => [['plugin']],
+    ];
 
     $form = parent::buildForm($form, $form_state);
     $form[$this->entitiesKey]['#empty'] = $this->t('No tax rates have been configured yet.');
 
     $form['actions']['#type'] = 'actions';
-    $form['actions']['submit'] = array(
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save configuration'),
       '#button_type' => 'primary',
-    );
+    ];
 
     return $form;
   }
@@ -188,19 +187,9 @@ class TaxRateListBuilder extends DraggableListBuilder implements FormInterface {
    * {@inheritdoc}
    */
   public function render() {
-    $build['description'] = array(
-      '#markup' => $this->t("<p>This is a list of the tax rates currently"
-        . " defined on your Drupal site.</p><p>You may use the 'Add tax rate'"
-        . " button to add a new rate, or use the widget in the 'Operations'"
-        . " column to edit, delete, enable/disable, or clone existing tax rates."
-        . " Rates that are disabled will not be applied at checkout and will not"
-        . " be included in product prices.</p>"
-        . "<p>Taxes are sorted by weight and then applied to the order sequentially."
-        . " This order is important when taxes need to be applied to other tax line items."
-        . " To re-order, drag the method to its desired location using the drag icon then save"
-        . " the configuration using the button at the bottom of the page.</p>"
-      ),
-    );
+    $build['description'] = [
+      '#markup' => $this->t("<p>This is a list of the tax rates currently defined on your Drupal site.</p><p>You may use the 'Add tax rate' button to add a new rate, or use the widget in the 'Operations' column to edit, delete, enable/disable, or clone existing tax rates. Rates that are disabled will not be applied at checkout and will not be included in product prices.</p><p>Taxes are sorted by weight and then applied to the order sequentially. This order is important when taxes need to be applied to other tax line items. To re-order, drag the method to its desired location using the drag icon then save the configuration using the button at the bottom of the page.</p>"),
+    ];
     $build += parent::render();
 
     return $build;

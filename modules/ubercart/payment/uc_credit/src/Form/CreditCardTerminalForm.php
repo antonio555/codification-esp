@@ -2,10 +2,12 @@
 
 namespace Drupal\uc_credit\Form;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\uc_order\OrderInterface;
-use Drupal\uc_payment\Entity\PaymentMethod;
+use Drupal\uc_payment\PaymentMethodInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Displays the credit card terminal form for administrators.
@@ -14,13 +16,43 @@ class CreditCardTerminalForm extends FormBase {
 
   /**
    * The order that is being processed.
+   *
+   * @var \Drupal\uc_order\OrderInterface
    */
   protected $order;
 
   /**
    * The payment method that is in use.
+   *
+   * @var \Drupal\uc_payment\PaymentMethodInterface
    */
   protected $paymentMethod;
+
+  /**
+   * The date.formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
+   * Form constructor.
+   *
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+   *   The date.formatter service.
+   */
+  public function __construct(DateFormatterInterface $date_formatter) {
+    $this->dateFormatter = $date_formatter;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('date.formatter')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -32,7 +64,7 @@ class CreditCardTerminalForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, OrderInterface $uc_order = NULL, PaymentMethod $uc_payment_method = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, OrderInterface $uc_order = NULL, PaymentMethodInterface $uc_payment_method = NULL) {
     $this->order = $uc_order;
     $this->paymentMethod = $uc_payment_method;
 
@@ -41,116 +73,116 @@ class CreditCardTerminalForm extends FormBase {
 
     $balance = uc_payment_balance($this->order);
 
-    $form['order_total'] = array(
+    $form['order_total'] = [
       '#prefix' => '<div><strong>',
       '#markup' => $this->t('Order total: @total', ['@total' => uc_currency_format($this->order->getTotal())]),
       '#suffix' => '</div></strong>',
-    );
-    $form['balance'] = array(
+    ];
+    $form['balance'] = [
       '#prefix' => '<div><strong>',
       '#markup' => $this->t('Balance: @balance', ['@balance' => uc_currency_format($balance)]),
       '#suffix' => '</div></strong>',
-    );
+    ];
 
     // Let the administrator set the amount to charge.
-    $form['amount'] = array(
+    $form['amount'] = [
       '#type' => 'uc_price',
       '#title' => $this->t('Charge Amount'),
       '#default_value' => $balance > 0 ? uc_currency_format($balance, FALSE, FALSE, '.') : 0,
-    );
+    ];
 
     // Build a credit card form.
-    $form['specify_card'] = array(
+    $form['specify_card'] = [
       '#type' => 'details',
       '#title' => $this->t('Credit card details'),
       '#description' => $this->t('Use the available buttons in this fieldset to process with the specified card details.'),
       '#open' => TRUE,
-    );
-    $form['specify_card']['cc_data'] = array(
+    ];
+    $form['specify_card']['cc_data'] = [
       '#tree' => TRUE,
       '#prefix' => '<div class="clearfix">',
       '#suffix' => '</div>',
-    );
-    $form['specify_card']['cc_data'] += $this->paymentMethod->getPlugin()->cartDetails($this->order, array(), $form_state);
+    ];
+    $form['specify_card']['cc_data'] += $this->paymentMethod->getPlugin()->cartDetails($this->order, [], $form_state);
     unset($form['specify_card']['cc_data']['cc_policy']);
 
-    $form['specify_card']['actions'] = array('#type' => 'actions');
+    $form['specify_card']['actions'] = ['#type' => 'actions'];
 
     // If available, let the card be charged now.
     if (in_array(UC_CREDIT_AUTH_CAPTURE, $types)) {
-      $form['specify_card']['actions']['charge_card'] = array(
+      $form['specify_card']['actions']['charge_card'] = [
         '#type' => 'submit',
         '#value' => $this->t('Charge amount'),
-      );
+      ];
     }
 
     // If available, let the amount be authorized.
     if (in_array(UC_CREDIT_AUTH_ONLY, $types)) {
-      $form['specify_card']['actions']['authorize_card'] = array(
+      $form['specify_card']['actions']['authorize_card'] = [
         '#type' => 'submit',
         '#value' => $this->t('Authorize amount only'),
-      );
+      ];
     }
 
     // If available, create a reference at the gateway.
     if (in_array(UC_CREDIT_REFERENCE_SET, $types)) {
-      $form['specify_card']['actions']['reference_set'] = array(
+      $form['specify_card']['actions']['reference_set'] = [
         '#type' => 'submit',
         '#value' => $this->t('Set a reference only'),
-      );
+      ];
     }
 
     // If available, create a reference at the gateway.
     if (in_array(UC_CREDIT_CREDIT, $types)) {
-      $form['specify_card']['actions']['credit_card'] = array(
+      $form['specify_card']['actions']['credit_card'] = [
         '#type' => 'submit',
         '#value' => $this->t('Credit amount to this card'),
-      );
+      ];
     }
 
     // Find any uncaptured authorizations.
-    $options = array();
+    $options = [];
 
     if (isset($this->order->data->cc_txns['authorizations'])) {
       foreach ($this->order->data->cc_txns['authorizations'] as $auth_id => $data) {
         if (empty($data['captured'])) {
-          $options[$auth_id] = $this->t('@auth_id - @date - @amount authorized', ['@auth_id' => strtoupper($auth_id), '@date' => \Drupal::service('date.formatter')->format($data['authorized'], 'short'), '@amount' => uc_currency_format($data['amount'])]);
+          $options[$auth_id] = $this->t('@auth_id - @date - @amount authorized', ['@auth_id' => strtoupper($auth_id), '@date' => $this->dateFormatter->format($data['authorized'], 'short'), '@amount' => uc_currency_format($data['amount'])]);
         }
       }
     }
 
     // If any authorizations existed...
     if (!empty($options)) {
-      // Display a fieldset with the authorizations and available action buttons.
-      $form['authorizations'] = array(
+      // Display fieldset with the authorizations and available action buttons.
+      $form['authorizations'] = [
         '#type' => 'details',
         '#title' => $this->t('Prior authorizations'),
         '#description' => $this->t('Use the available buttons in this fieldset to select and act on a prior authorization. The charge amount specified above will be captured against the authorization listed below. Only one capture is possible per authorization, and a capture for more than the amount of the authorization may result in additional fees to you.'),
         '#open' => TRUE,
-      );
+      ];
 
-      $form['authorizations']['select_auth'] = array(
+      $form['authorizations']['select_auth'] = [
         '#type' => 'radios',
         '#title' => $this->t('Select authorization'),
         '#options' => $options,
-      );
+      ];
 
-      $form['authorizations']['actions'] = array('#type' => 'actions');
+      $form['authorizations']['actions'] = ['#type' => 'actions'];
 
       // If available, capture a prior authorization.
       if (in_array(UC_CREDIT_PRIOR_AUTH_CAPTURE, $types)) {
-        $form['authorizations']['actions']['auth_capture'] = array(
+        $form['authorizations']['actions']['auth_capture'] = [
           '#type' => 'submit',
           '#value' => $this->t('Capture amount to this authorization'),
-        );
+        ];
       }
 
       // If available, void a prior authorization.
       if (in_array(UC_CREDIT_VOID, $types)) {
-        $form['authorizations']['actions']['auth_void'] = array(
+        $form['authorizations']['actions']['auth_void'] = [
           '#type' => 'submit',
           '#value' => $this->t('Void authorization'),
-        );
+        ];
       }
 
       // Collapse this fieldset if no actions are available.
@@ -160,57 +192,54 @@ class CreditCardTerminalForm extends FormBase {
     }
 
     // Find any uncaptured authorizations.
-    $options = array();
-
-    // Log a reference to the order for testing.
-    // $this->order->data = uc_credit_log_reference($this->order->id(), substr(md5(REQUEST_TIME), 0, 16), '4111111111111111');
+    $options = [];
 
     if (isset($this->order->data->cc_txns['references'])) {
       foreach ($this->order->data->cc_txns['references'] as $ref_id => $data) {
-        $options[$ref_id] = $this->t('@ref_id - @date - (Last 4) @card', ['@ref_id' => strtoupper($ref_id), '@date' => \Drupal::service('date.formatter')->format($data['created'], 'short'), '@card' => $data['card']]);
+        $options[$ref_id] = $this->t('@ref_id - @date - (Last 4) @card', ['@ref_id' => strtoupper($ref_id), '@date' => $this->dateFormatter->format($data['created'], 'short'), '@card' => $data['card']]);
       }
     }
 
     // If any references existed...
     if (!empty($options)) {
-      // Display a fieldset with the authorizations and available action buttons.
-      $form['references'] = array(
+      // Display fieldset with the authorizations and available action buttons.
+      $form['references'] = [
         '#type' => 'details',
         '#title' => $this->t('Customer references'),
         '#description' => $this->t('Use the available buttons in this fieldset to select and act on a customer reference.'),
         '#open' => TRUE,
-      );
+      ];
 
-      $form['references']['select_ref'] = array(
+      $form['references']['select_ref'] = [
         '#type' => 'radios',
         '#title' => $this->t('Select references'),
         '#options' => $options,
-      );
+      ];
 
-      $form['references']['actions'] = array('#type' => 'actions');
+      $form['references']['actions'] = ['#type' => 'actions'];
 
       // If available, capture a prior references.
       if (in_array(UC_CREDIT_REFERENCE_TXN, $types)) {
-        $form['references']['actions']['ref_capture'] = array(
+        $form['references']['actions']['ref_capture'] = [
           '#type' => 'submit',
           '#value' => $this->t('Charge amount to this reference'),
-        );
+        ];
       }
 
       // If available, remove a previously stored reference.
       if (in_array(UC_CREDIT_REFERENCE_REMOVE, $types)) {
-        $form['references']['actions']['ref_remove'] = array(
+        $form['references']['actions']['ref_remove'] = [
           '#type' => 'submit',
           '#value' => $this->t('Remove reference'),
-        );
+        ];
       }
 
       // If available, remove a previously stored reference.
       if (in_array(UC_CREDIT_REFERENCE_CREDIT, $types)) {
-        $form['references']['actions']['ref_credit'] = array(
+        $form['references']['actions']['ref_credit'] = [
           '#type' => 'submit',
           '#value' => $this->t('Credit amount to this reference'),
-        );
+        ];
       }
 
       // Collapse this fieldset if no actions are available.

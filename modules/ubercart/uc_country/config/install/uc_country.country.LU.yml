@@ -4,9 +4,18 @@ alpha_3: LUX
 numeric: 442
 status: false
 zones:
-  L: Letzebuerg
-  L: Luxembourg
-  L: Luxemburg
+  CA: Capellen
+  CL: Clervaux
+  DI: Diekirch
+  EC: Echternach
+  ES: Esch-sur-Alzette
+  GR: Grevenmacher
+  LU: Luxembourg
+  ME: Mersch
+  RD: Redange
+  RM: Remich
+  VD: Vianden
+  WI: Wiltz
 address_format:
   - '!company'
   - '!first_name !last_name'

@@ -2,6 +2,7 @@
 
 namespace Drupal\uc_cart\Form;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
@@ -14,7 +15,6 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  * The checkout form built up from the enabled checkout panes.
  */
 class CheckoutForm extends FormBase {
-
   use AjaxAttachTrait;
 
   /**
@@ -32,16 +32,26 @@ class CheckoutForm extends FormBase {
   protected $session;
 
   /**
+   * The datetime.time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $dateTime;
+
+  /**
    * Constructs a CheckoutController.
    *
    * @param \Drupal\uc_cart\Plugin\CheckoutPaneManager $checkout_pane_manager
    *   The checkout pane plugin manager.
    * @param \Symfony\Component\HttpFoundation\Session\SessionInterface $session
    *   The session.
+   * @param \Drupal\Component\Datetime\TimeInterface $date_time
+   *   The datetime.time service.
    */
-  public function __construct(CheckoutPaneManager $checkout_pane_manager, SessionInterface $session) {
+  public function __construct(CheckoutPaneManager $checkout_pane_manager, SessionInterface $session, TimeInterface $date_time) {
     $this->checkoutPaneManager = $checkout_pane_manager;
     $this->session = $session;
+    $this->dateTime = $date_time;
   }
 
   /**
@@ -50,7 +60,8 @@ class CheckoutForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('plugin.manager.uc_cart.checkout_pane'),
-      $container->get('session')
+      $container->get('session'),
+      $container->get('datetime.time')
     );
   }
 
@@ -74,9 +85,9 @@ class CheckoutForm extends FormBase {
 
     $form['#attributes']['class'][] = 'uc-cart-checkout-form';
     $form['#attached']['library'][] = 'uc_cart/uc_cart.styles';
-    $form['panes'] = array('#tree' => TRUE);
+    $form['panes'] = ['#tree' => TRUE];
 
-    $filter = array('enabled' => FALSE);
+    $filter = ['enabled' => FALSE];
 
     // If the order isn't shippable, remove panes with shippable == TRUE.
     if (!$order->isShippable() && $this->config('uc_cart.settings')->get('panes.delivery.settings.delivery_not_shippable')) {
@@ -91,7 +102,8 @@ class CheckoutForm extends FormBase {
       if (!$form_state->get(['panes', $id, 'prepared'])) {
         $pane->prepare($order, $form, $form_state);
         $form_state->set(['panes', $id, 'prepared'], TRUE);
-        $processed = FALSE; // Make sure we save the updated order.
+        // Make sure we save the updated order.
+        $processed = FALSE;
       }
     }
 
@@ -105,29 +117,29 @@ class CheckoutForm extends FormBase {
 
     foreach ($panes as $id => $pane) {
       $form['panes'][$id] = $pane->view($order, $form, $form_state);
-      $form['panes'][$id] += array(
+      $form['panes'][$id] += [
         '#type' => 'details',
         '#title' => $pane->getTitle(),
         '#id' => $id . '-pane',
         '#open' => TRUE,
-      );
+      ];
     }
 
-    $form['actions'] = array('#type' => 'actions');
-    $form['actions']['cancel'] = array(
+    $form['actions'] = ['#type' => 'actions'];
+    $form['actions']['cancel'] = [
       '#type' => 'submit',
       '#value' => $this->t('Cancel'),
-      '#validate' => array(),
-      '#limit_validation_errors' => array(),
-      '#submit' => array(array($this, 'cancel')),
-    );
-    $form['actions']['continue'] = array(
+      '#validate' => [],
+      '#limit_validation_errors' => [],
+      '#submit' => [[$this, 'cancel']],
+    ];
+    $form['actions']['continue'] = [
       '#type' => 'submit',
       '#value' => $this->t('Review order'),
       '#button_type' => 'primary',
-    );
+    ];
 
-    $form['#process'][] = array($this, 'ajaxProcessForm');
+    $form['#process'][] = [$this, 'ajaxProcessForm'];
 
     $this->session->remove('uc_checkout_review_' . $order->id());
     $this->session->remove('uc_checkout_complete_' . $order->id());
@@ -142,9 +154,10 @@ class CheckoutForm extends FormBase {
     $order = $form_state->get('order');
 
     // Update the order "changed" time to prevent timeout on ajax requests.
-    $order->setChangedTime(REQUEST_TIME);
+    $order->setChangedTime($this->dateTime->getRequestTime());
 
-    // Validate/process the cart panes.  A FALSE value results in failed checkout.
+    // Validate/process each cart pane. If one of the process() functions
+    // returns FALSE, checkout fails.
     $form_state->set('checkout_valid', TRUE);
     foreach (Element::children($form_state->getValue('panes')) as $id) {
       $pane = $this->checkoutPaneManager->createInstance($id);

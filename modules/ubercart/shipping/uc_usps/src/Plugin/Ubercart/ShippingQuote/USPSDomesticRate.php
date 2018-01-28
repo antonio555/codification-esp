@@ -21,11 +21,11 @@ class USPSDomesticRate extends USPSRateBase {
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
+    return [
       'base_rate' => 0,
       'product_rate' => 0,
       'field' => '',
-    );
+    ];
   }
 
   /**
@@ -40,14 +40,14 @@ class USPSDomesticRate extends USPSRateBase {
       $fields[$field->getName()] = $field->label();
     }
 
-    $form['base_rate'] = array(
+    $form['base_rate'] = [
       '#type' => 'uc_price',
       '#title' => $this->t('Base price'),
       '#description' => $this->t('The starting price for shipping costs.'),
       '#default_value' => $this->configuration['base_rate'],
       '#required' => TRUE,
-    );
-    $form['product_rate'] = array(
+    ];
+    $form['product_rate'] = [
       '#type' => 'number',
       '#title' => $this->t('Default product shipping rate'),
       '#min' => 0,
@@ -56,14 +56,14 @@ class USPSDomesticRate extends USPSRateBase {
       '#default_value' => $this->configuration['product_rate'],
       '#field_suffix' => $this->t('% (percent)'),
       '#required' => TRUE,
-    );
-    $form['field'] = array(
+    ];
+    $form['field'] = [
       '#type' => 'select',
       '#title' => $this->t('Product shipping rate override field'),
       '#description' => $this->t('Overrides the default shipping rate per product for this percentage rate shipping method, when the field is attached to a product content type and has a value.'),
       '#options' => $fields,
       '#default_value' => $this->configuration['field'],
-    );
+    ];
     return $form;
   }
 
@@ -101,7 +101,6 @@ class USPSDomesticRate extends USPSRateBase {
       $rate += $product->price->value * floatval($product_rate) / 100;
     }
 
-
     return [$rate];
   }
 
@@ -130,26 +129,26 @@ class USPSDomesticRate extends USPSRateBase {
     // Country code is always needed.
     if (empty($destination->country)) {
       // Skip this shipping method.
-      return array();
+      return [];
     }
 
     // Shipments to the US also need zone and postal_code.
     if (($destination->country == 'US') &&
         (empty($destination->zone) || empty($destination->postal_code))) {
       // Skip this shipping method.
-      return array();
+      return [];
     }
 
     // USPS Production server.
     $connection_url = 'http://production.shippingapis.com/ShippingAPI.dll';
 
     // Initialize $debug_data to prevent PHP notices here and in uc_quote.
-    $debug_data = array('debug' => NULL, 'error' => array());
-    $services = array();
-    $addresses = array($quote_config->get('store_default_address'));
+    $debug_data = ['debug' => NULL, 'error' => []];
+    $services = [];
+    $addresses = [$quote_config->get('store_default_address')];
     $packages = $this->packageProducts($products, $addresses);
     if (!count($packages)) {
-      return array();
+      return [];
     }
 
     foreach ($packages as $key => $ship_packages) {
@@ -183,13 +182,13 @@ class USPSDomesticRate extends USPSRateBase {
       $response = new SimpleXMLElement($result->getBody(TRUE));
 
       // Map double-encoded HTML markup in service names to Unicode characters.
-      $service_markup = array(
+      $service_markup = [
         '&lt;sup&gt;&amp;reg;&lt;/sup&gt;'   => '®',
         '&lt;sup&gt;&amp;trade;&lt;/sup&gt;' => '™',
         '&lt;sup&gt;&#174;&lt;/sup&gt;'      => '®',
         '&lt;sup&gt;&#8482;&lt;/sup&gt;'     => '™',
         '**'                                 => '',
-      );
+      ];
       // Use this map to fix USPS service names.
       if (strpos($method['id'], 'intl')) {
         // Find and replace markup in International service names.
@@ -204,32 +203,31 @@ class USPSDomesticRate extends USPSRateBase {
         }
       }
 
-
       if (isset($response->Package)) {
         foreach ($response->Package as $package) {
           if (isset($package->Error)) {
-            $debug_data['error'][] = (string)$package->Error[0]->Description . '<br />';
+            $debug_data['error'][] = (string) $package->Error[0]->Description . '<br />';
           }
           else {
             if (strpos($method['id'], 'intl')) {
               foreach ($package->Service as $service) {
-                $id = (string)$service['ID'];
-                $services[$id]['label'] = t('U.S.P.S. @service', array('@service' => (string)$service->SvcDescription));
+                $id = (string) $service['ID'];
+                $services[$id]['label'] = t('U.S.P.S. @service', ['@service' => (string) $service->SvcDescription]);
                 // Markup rate before customer sees it.
                 if (!isset($services[$id]['rate'])) {
                   $services[$id]['rate'] = 0;
                 }
-                $services[$id]['rate'] += $this->rateMarkup((string)$service->Postage);
+                $services[$id]['rate'] += $this->rateMarkup((string) $service->Postage);
               }
             }
             else {
               foreach ($package->Postage as $postage) {
-                $classid = (string)$postage['CLASSID'];
+                $classid = (string) $postage['CLASSID'];
                 if ($classid === '0') {
-                  if ((string)$postage->MailService == "First-Class Mail® Parcel") {
+                  if ((string) $postage->MailService == "First-Class Mail® Parcel") {
                     $classid = 'zeroParcel';
                   }
-                  elseif ((string)$postage->MailService == "First-Class Mail® Letter") {
+                  elseif ((string) $postage->MailService == "First-Class Mail® Letter") {
                     $classid = 'zeroFlat';
                   }
                   else {
@@ -239,16 +237,16 @@ class USPSDomesticRate extends USPSRateBase {
                 if (!isset($services[$classid]['rate'])) {
                   $services[$classid]['rate'] = 0;
                 }
-                $services[$classid]['label'] = t('U.S.P.S. @service', array('@service' => (string)$postage->MailService));
+                $services[$classid]['label'] = t('U.S.P.S. @service', ['@service' => (string) $postage->MailService]);
                 // Markup rate before customer sees it.
-                // Rates are stored differently if ONLINE $rate_type is requested.
-                // First Class doesn't have online rates, so if CommercialRate
-                // is missing use Rate instead.
+                // Rates are stored differently if the ONLINE $rate_type is
+                // requested. First Class doesn't have online rates, so if
+                // CommercialRate is missing use Rate instead.
                 if ($rate_type && !empty($postage->CommercialRate)) {
-                  $services[$classid]['rate'] += $this->rateMarkup((string)$postage->CommercialRate);
+                  $services[$classid]['rate'] += $this->rateMarkup((string) $postage->CommercialRate);
                 }
                 else {
-                  $services[$classid]['rate'] += $this->rateMarkup((string)$postage->Rate);
+                  $services[$classid]['rate'] += $this->rateMarkup((string) $postage->Rate);
                 }
               }
             }
@@ -257,7 +255,7 @@ class USPSDomesticRate extends USPSRateBase {
       }
     }
 
-    // Strip leading 'usps_'
+    // Strip leading 'usps_'.
     $method_services = substr($method['id'] . '_services', 5);
 //$method_services is the name of the callback function
 //  array_keys($method['quote']['accessorials'])
@@ -291,17 +289,17 @@ class USPSDomesticRate extends USPSRateBase {
   /**
    * Constructs a quote request for domestic shipments.
    *
-   * @param $packages
+   * @param array $packages
    *   Array of packages received from the cart.
    * @param $origin
    *   Delivery origin address information.
    * @param $destination
    *   Delivery destination address information.
    *
-   * @return
+   * @return string
    *   RateV4Request XML document to send to USPS.
    */
-  public function rateRequest($packages, $origin, $destination) {
+  public function rateRequest(array $packages, $origin, $destination) {
     $usps_config = \Drupal::config('uc_usps.settings');
     $request  = '<RateV4Request USERID="' . $usps_config->get('user_id') . '">';
     $request .= '<Revision>2</Revision>';
@@ -327,7 +325,7 @@ class USPSDomesticRate extends USPSRateBase {
           '<Value>' . $package->price . '</Value>' .
           '<Machinable>' . ($package->machinable ? 'TRUE' : 'FALSE') . '</Machinable>' .
           '<ReturnLocations>TRUE</ReturnLocations>' .
-          '<ShipDate Option="EMSH">' . \Drupal::service('date.formatter')->format(time(), 'custom', 'd-M-Y', 'America/New_York', 'en') . '</ShipDate>';
+          '<ShipDate Option="EMSH">' . \Drupal::service('date.formatter')->format(\Drupal::time()->getCurrentTime(), 'custom', 'd-M-Y', 'America/New_York', 'en') . '</ShipDate>';
 
           // Check if we need to add any special services to this package.
           if ($usps_config->get('insurance')            ||

@@ -17,12 +17,15 @@ use Drupal\uc_order\OrderInterface;
  */
 class Total extends LineItemPluginBase {
 
+  /**
+   * {@inheritdoc}
+   */
   public function display(OrderInterface $order) {
-    $lines[] = array(
+    $lines[] = [
       'id' => 'total',
       'title' => $this->t('Order total'),
       'amount' => $order->getTotal(),
-    );
+    ];
     return $lines;
   }
 

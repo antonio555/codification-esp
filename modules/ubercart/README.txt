@@ -8,7 +8,6 @@ designed to be extended to meet any need.  Furthermore, the administrative
 interface, particularly relating to processing and fulfilling orders, has been
 designed for ease of use and efficient display of information.
 
-Join the Ubercart community by signing up to access our support forums on http://www.ubercart.org.
 
 Features overview:
 http://www.ubercart.org/what_is_ubercart
@@ -32,14 +31,14 @@ Live sites directory:
 http://www.ubercart.org/site
 
 Report a bug or feature request:
-http://drupal.org/project/issues/ubercart
+https://www.drupal.org/project/issues/ubercart
 
 Thanks for checking out Ubercart!  We would love to hear your feedback.
 We particularly want to know how we can make Ubercart better and easier to use.
 Feel free to post your thoughts in the forums at Ubercart.org!  We will make a
 survey available for more targeted feedback in the near future.
 
-Releases may be downloaded at http://drupal.org/project/ubercart.
+Releases may be downloaded at https://www.drupal.org/project/ubercart.
 
 Kind regards,
 The UberDudes

@@ -24,33 +24,33 @@ class AddressBookForm extends FormBase {
     $select = uc_select_address($uid, $type, $func);
 
     if ($uid == 0) {
-      $form['desc'] = array(
+      $form['desc'] = [
         '#prefix' => '<br />',
         '#markup' => $this->t('You must select a customer before address<br />information is available.<br />'),
         '#suffix' => '<br />',
-      );
+      ];
     }
     elseif (is_null($select)) {
-      $form['desc'] = array(
+      $form['desc'] = [
         '#prefix' => '<br />',
         '#markup' => $this->t('No addresses found for customer.'),
         '#suffix' => '<br />',
-      );
+      ];
     }
     else {
       $form['addresses'] = uc_select_address($uid, $type, $func, $this->t('Select an address'));
-// @todo: remove the CSS, put into uc_order.css
+      // @todo Remove the CSS, put into uc_order.css
       $form['addresses']['#prefix'] = '<div style="float: left; margin-right: 1em;">';
       $form['addresses']['#suffix'] = '</div>';
     }
 
     // Need to pass along address type selector for use in the JavaScript.
     $form['#attached']['drupalSettings']['addressTypeId'] = '#' . $type . '-address-select';
-    $form['close'] = array(
+    $form['close'] = [
       '#type' => 'button',
       '#value' => $this->t('Close'),
-      '#attributes' => array('id' => 'close-address-select'),
-    );
+      '#attributes' => ['id' => 'close-address-select'],
+    ];
 
     return $form;
   }
@@ -60,4 +60,5 @@ class AddressBookForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
   }
+
 }

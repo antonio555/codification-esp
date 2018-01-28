@@ -65,13 +65,13 @@ class PrintInvoiceAction extends ActionBase implements ContainerFactoryPluginInt
    * {@inheritdoc}
    */
   public function execute($order = NULL) {
-    $build = array(
+    $build = [
       '#theme' => 'uc_order_invoice',
       '#order' => $order,
       '#op' => 'print',
       '#prefix' => '<div style="page-break-after: always;">',
       '#suffix' => '</div>',
-    );
+    ];
 
     $output = '<html><head><title>Invoice</title></head>';
     $output .= '<body onload="print();">';
@@ -79,7 +79,7 @@ class PrintInvoiceAction extends ActionBase implements ContainerFactoryPluginInt
     $output .= '</body></html>';
     $response = new Response($output);
 
-    $listener = function($event) use ($response) {
+    $listener = function ($event) use ($response) {
       $event->setResponse($response);
     };
     // Add the listener to the event dispatcher.

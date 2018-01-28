@@ -16,12 +16,15 @@ use Drupal\uc_order\OrderInterface;
  */
 class Subtotal extends LineItemPluginBase {
 
+  /**
+   * {@inheritdoc}
+   */
   public function load(OrderInterface $order) {
-    $lines[] = array(
+    $lines[] = [
       'id' => 'subtotal',
       'title' => $this->t('Subtotal'),
       'amount' => $order->getSubtotal(),
-    );
+    ];
     return $lines;
   }
 

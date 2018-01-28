@@ -2,422 +2,148 @@
 
 /**
  * @file
- * This file contains the Rules hooks and functions necessary to make the order
- * related entity, conditions, events, and actions work.
+ * Rules integration for order-related entity events, conditions, and actions.
  */
+
+use Drupal\node\Entity\Node;
+use Drupal\uc_order\OrderInterface;
 
 /**
  * Implements hook_rules_data_info().
  */
 function uc_order_rules_data_info() {
-  $types['uc_order'] = array(
+  $types['uc_order'] = [
     'label' => t('Ubercart order object'),
     'wrap' => TRUE,
     'group' => t('Ubercart'),
-  );
-  $types['uc_order_product'] = array(
+  ];
+  $types['uc_order_product'] = [
     'label' => t('Ubercart ordered product'),
     'wrap' => TRUE,
     'parent' => 'node',
     'group' => t('Ubercart'),
-  );
+  ];
 
-  $types['uc_line_item'] = array(
+  $types['uc_line_item'] = [
     'label' => t('Order line item'),
     'wrap' => TRUE,
     'group' => t('Ubercart'),
     'token type' => FALSE,
-  );
+  ];
 
   return $types;
-}
-
-/**
- * Implements hook_rules_event_info().
- */
-function uc_order_rules_event_info() {
-  $events['uc_order_status_update'] = array(
-    'label' => t('Order status gets updated'),
-    'group' => t('Order'),
-    'variables' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Original order'),
-      ),
-      'updated_order' => array(
-        'type' => 'uc_order',
-        'label' => t('Updated order'),
-      ),
-    ),
-  );
-
-  $events['uc_order_status_email_update'] = array(
-    'label' => t('E-mail requested for order status update'),
-    'group' => t('Order'),
-    'variables' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-    ),
-  );
-
-  $events['uc_order_delete'] = array(
-    'label' => t('An order is being deleted'),
-    'group' => t('Order'),
-    'variables' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-    ),
-  );
-
-  return $events;
-}
-
-/**
- * Implements hook_rules_condition_info().
- */
-function uc_order_rules_condition_info() {
-  $conditions['uc_order_condition_order_state'] = array(
-    'label' => t("Check an order's state"),
-    'group' => t('Order'),
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'order_state' => array(
-        'type' => 'text',
-        'label' => t('Order state'),
-        'options list' => 'uc_order_condition_order_state_options',
-        'restriction' => 'input',
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_delivery_country'] = array(
-    'label' => t("Check an order's shipping country"),
-    'group' => t('Order'),
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'countries' => array(
-        'type' => 'list<integer>',
-        'label' => t('Countries'),
-        'options list' => 'Drupal\uc_country\Controller\CountryController::countryOptionsCallback',
-        'restriction' => 'input',
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_billing_country'] = array(
-    'label' => t("Check an order's billing country"),
-    'group' => t('Order'),
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'countries' => array(
-        'type' => 'list<integer>',
-        'label' => t('Countries'),
-        'options list' => 'Drupal\uc_country\Controller\CountryController::countryOptionsCallback',
-        'restriction' => 'input',
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_has_products'] = array(
-    'label' => t("Check an order's products"),
-    'group' => t('Order: Product'),
-    'base' => 'uc_order_condition_has_products',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'products' => array(
-        'type' => 'list<text>',
-        'label' => t('Products'),
-        'options list' => 'uc_order_condition_has_products_options',
-        'restriction' => 'input',
-      ),
-      'required' => array(
-        'type' => 'boolean',
-        'label' => t('Require all selected products'),
-        'description' => t('Select to require that order must contain all selected products.  Otherwise, order must contain at least one of the selected products.'),
-      ),
-      'forbidden' => array(
-        'type' => 'boolean',
-        'label' => t('Forbid other products'),
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_count_products'] = array(
-    'label' => t("Check an order's number of products"),
-    'group' => t('Order: Product'),
-    'base' => 'uc_order_condition_count_products',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'products' => array(
-        'type' => 'list<integer>',
-        'label' => t('Products'),
-        'options list' => 'uc_order_condition_products_options',
-        'restriction' => 'input',
-      ),
-      'product_count_value' => array(
-        'type' => 'integer',
-        'label' => t('Product count value'),
-      ),
-      'product_count_comparison' => array(
-        'type' => 'text',
-        'label' => t('Operator'),
-        'options list' => 'uc_order_condition_value_operator_options',
-      ),
-    ),
-  );
-  $conditions['uc_order_condition_products_weight'] = array(
-    'label' => t("Check an order's total weight"),
-    'group' => t('Order: Product'),
-    'help' => t('Compare the weight of all of the products, or the weight of just one type in the order.'),
-    'base' => 'uc_order_condition_products_weight',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'products' => array(
-        'type' => 'list<integer>',
-        'label' => t('Products'),
-        'options list' => 'uc_order_condition_products_options',
-        'restriction' => 'input',
-      ),
-      'weight_units' => array(
-        'type' => 'text',
-        'label' => t('Unit of measurement'),
-        'options list' => 'uc_order_condition_weight_units_options',
-      ),
-      'product_weight_value' => array(
-        'type' => 'decimal',
-        'label' => t('Product weight value'),
-      ),
-      'product_weight_comparison' => array(
-        'type' => 'text',
-        'label' => t('Operator'),
-        'options list' => 'uc_order_condition_value_operator_options',
-      ),
-    ),
-  );
-  $conditions['uc_order_condition_is_shippable'] = array(
-    'label' => t('Check if an order can be shipped'),
-    'group' => t('Order'),
-    'base' => 'uc_order_condition_is_shippable',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_has_product_class'] = array(
-    'label' => t("Check an order's product classes"),
-    'group' => t('Order: Product'),
-    'base' => 'uc_order_condition_has_product_class',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'product_classes' => array(
-        'type' => 'list<text>',
-        'label' => t('Product Classes'),
-        'options list' => 'uc_order_condition_has_product_class_classes_options',
-        'restriction' => 'input',
-      ),
-      'required' => array(
-        'type' => 'boolean',
-        'label' => t('Require all selected product classes'),
-        'description' => t('Select to require that order must contain all selected product classes.  Otherwise, order must contain at least one of the selected product classes.'),
-      ),
-      'forbidden' => array(
-        'type' => 'boolean',
-        'label' => t('Forbid other product classes'),
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_total'] = array(
-    'label' => t("Check an order's total"),
-    'group' => t('Order'),
-    'base' => 'uc_order_condition_total',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'op' => array(
-        'type' => 'text',
-        'label' => t('Operator'),
-        'description' => t('The comparison operator.'),
-        'default value' => '==',
-        'options list' => 'uc_order_condition_value_operator_options',
-        'restriction' => 'input',
-      ),
-      'value' => array(
-        'type' => 'decimal',
-        'label' => t('Data value'),
-        'description' => t('The value to compare the data with.'),
-      ),
-    ),
-  );
-
-  $conditions['uc_order_condition_subtotal'] = array(
-    'label' => t("Check an order's subtotal"),
-    'group' => t('Order'),
-    'base' => 'uc_order_condition_subtotal',
-    'parameter' => array(
-      'order' => array(
-        'type' => 'uc_order',
-        'label' => t('Order'),
-      ),
-      'op' => array(
-        'type' => 'text',
-        'label' => t('Operator'),
-        'description' => t('The comparison operator.'),
-        'default value' => '==',
-        'options list' => 'uc_order_condition_value_operator_options',
-        'restriction' => 'input',
-      ),
-      'value' => array(
-        'type' => 'decimal',
-        'label' => t('Data value'),
-        'description' => t('The value to compare the data with.'),
-      ),
-    ),
-  );
-
-  return $conditions;
 }
 
 /**
  * Implements hook_rules_action_info().
  */
 function uc_order_rules_action_info() {
-  $order_arg = array(
+  $order_arg = [
     'type' => 'uc_order',
     'label' => t('Order'),
-  );
+  ];
 
-  $actions['uc_order_update_status'] = array(
+  $actions['uc_order_update_status'] = [
     'label' => t('Update the order status'),
     'group' => t('Order'),
     'base' => 'uc_order_action_update_status',
-    'parameter' => array(
+    'parameter' => [
       'order' => $order_arg,
-      'order_status' => array(
+      'order_status' => [
         'type' => 'text',
         'label' => t('Status'),
         'options list' => 'Drupal\uc_order\Entity\OrderStatus::getOptionsList',
-      ),
-    ),
-  );
-  $actions['uc_order_action_add_comment'] = array(
+      ],
+    ],
+  ];
+  $actions['uc_order_action_add_comment'] = [
     'label' => t('Add a comment to the order'),
     'group' => t('Order'),
     'base' => 'uc_order_action_add_comment',
-    'parameter' => array(
+    'parameter' => [
       'order' => $order_arg,
-      'comment' => array(
+      'comment' => [
         'type' => 'text',
         'label' => t('Comment'),
-      ),
-      'comment_type' => array(
+      ],
+      'comment_type' => [
         'type' => 'text',
         'label' => t('Comment type'),
         'restriction' => 'input',
         'options list' => 'uc_order_action_order_comment_types',
-      ),
-    ),
-  );
-  $actions['uc_order_email'] = array(
+      ],
+    ],
+  ];
+  $actions['uc_order_email'] = [
     'label' => t('Send an order email'),
     'group' => t('Order'),
     'base' => 'uc_order_action_email',
-    'parameter' => array(
+    'parameter' => [
       'order' => $order_arg,
-      'from' => array(
+      'from' => [
         'type' => 'text',
         'label' => t('Sender'),
         'description' => t("Enter the 'From' email address, or leave blank to use your store email address. You may use order tokens for dynamic email addresses."),
         'optional' => TRUE,
-      ),
-      'addresses' => array(
+      ],
+      'addresses' => [
         'type' => 'text',
         'label' => t('Recipients'),
         'description' => t('Enter the email addresses to receive the notifications, one on each line. You may use order tokens for dynamic email addresses.'),
-      ),
-      'subject' => array(
+      ],
+      'subject' => [
         'type' => 'text',
         'label' => t('Subject'),
         'translatable' => TRUE,
-      ),
-      'message' => array(
+      ],
+      'message' => [
         'type' => 'text',
         'label' => t('Message'),
         'translatable' => TRUE,
-      ),
-      'format' => array(
+      ],
+      'format' => [
         'type' => 'text',
         'label' => t('Message format'),
         'options list' => 'uc_order_message_formats',
-      ),
-    ),
-  );
-  $actions['uc_order_email_invoice'] = array(
+      ],
+    ],
+  ];
+  $actions['uc_order_email_invoice'] = [
     'label' => t('Email an order invoice'),
     'group' => t('Order'),
     'base' => 'uc_order_action_email_invoice',
-    'parameter' => array(
+    'parameter' => [
       'order' => $order_arg,
-      'from' => array(
+      'from' => [
         'type' => 'text',
         'label' => t('Sender'),
         'description' => t("Enter the 'From' email address, or leave blank to use your store email address. You may use order tokens for dynamic email addresses."),
         'optional' => TRUE,
-      ),
-      'addresses' => array(
+      ],
+      'addresses' => [
         'type' => 'text',
         'label' => t('Recipients'),
         'description' => t('Enter the email addresses to receive the invoice, one on each line. You may use order tokens for dynamic email addresses.'),
-      ),
-      'subject' => array(
+      ],
+      'subject' => [
         'type' => 'text',
         'label' => t('Subject'),
         'translatable' => TRUE,
-      ),
-      'template' => array(
+      ],
+      'template' => [
         'type' => 'text',
         'label' => t('Invoice template'),
         'options list' => 'uc_order_template_options',
         'restriction' => 'input',
-      ),
-      'view' => array(
+      ],
+      'view' => [
         'type' => 'text',
         'label' => t('Included information'),
         'options list' => 'uc_order_action_email_invoice_view_options',
         'restriction' => 'input',
-      ),
-    ),
-  );
+      ],
+    ],
+  ];
 
   return $actions;
 }
@@ -455,7 +181,7 @@ function uc_order_condition_billing_country($order, $countries) {
 /**
  * Checks that the order has the selected combination of product classes.
  *
- * @param object $order
+ * @param \Drupal\uc_order\OrderInterface $order
  *   The order to check.
  * @param array $product_classes
  *   An array of strings containing the product classes (node content
@@ -470,8 +196,8 @@ function uc_order_condition_billing_country($order, $countries) {
  * @return bool
  *   Whether the order meets the specified conditions.
  */
-function uc_order_condition_has_product_class($order, $product_classes, $required, $forbidden) {
-  $order_product_classes = array();
+function uc_order_condition_has_product_class(OrderInterface $order, array $product_classes, $required, $forbidden) {
+  $order_product_classes = [];
   foreach ($order->products as $product) {
     if (!empty($product->type)) {
       // If present, use the product type from {uc_order_products}.data.type.
@@ -480,7 +206,7 @@ function uc_order_condition_has_product_class($order, $product_classes, $require
     else {
       // Otherwise, use the node type.  If the node can't be loaded, ignore
       // this product.
-      $node = node_load($product->nid);
+      $node = Node::load($product->nid);
       if (!empty($node)) {
         $order_product_classes[] = $node->type;
       }
@@ -513,11 +239,11 @@ function uc_order_condition_has_product_class($order, $product_classes, $require
  * @see uc_order_condition_has_product_class()
  */
 function uc_order_condition_has_product_class_classes_options() {
-  $options = array();
+  $options = [];
 
   $result = db_query('SELECT * FROM {uc_product_classes}');
   foreach ($result as $class) {
-    $options += array($class->pcid => $class->name);
+    $options += [$class->pcid => $class->name];
   }
 
   return $options;
@@ -527,7 +253,7 @@ function uc_order_condition_has_product_class_classes_options() {
  * Checks that the order has the selected combination of products.
  */
 function uc_order_condition_has_products($order, $products, $required, $forbidden) {
-  $order_products = array();
+  $order_products = [];
   foreach ($order->products as $product) {
     $order_products[] = $product->model;
   }
@@ -536,11 +262,11 @@ function uc_order_condition_has_products($order, $products, $required, $forbidde
     $required_check = $required_products == $products;
   }
   else {
-    $required_check = (bool)count($required_products);
+    $required_check = (bool) count($required_products);
   }
   if ($forbidden) {
     $forbidden_products = array_diff($order_products, $products);
-    $forbidden_check = (bool)count($forbidden_products);
+    $forbidden_check = (bool) count($forbidden_products);
   }
   else {
     $forbidden_check = FALSE;
@@ -554,7 +280,7 @@ function uc_order_condition_has_products($order, $products, $required, $forbidde
  * @see uc_order_condition_has_products()
  */
 function uc_order_condition_has_products_options() {
-  $options = array();
+  $options = [];
   $result = db_query('SELECT nid FROM {uc_products}');
   foreach ($result as $row) {
     $options += uc_product_get_models($row->nid, FALSE);
@@ -570,7 +296,7 @@ function uc_order_condition_has_products_options() {
  * @see uc_order_condition_count_products_form()
  */
 function uc_order_condition_count_products($order, $products, $count, $op) {
-  $totals = array('all' => 0);
+  $totals = ['all' => 0];
   $total = 0;
   foreach ($order->products as $product) {
     $totals['all'] += $product->qty;
@@ -598,7 +324,7 @@ function uc_order_condition_count_products($order, $products, $count, $op) {
  * Product options callback.
  */
 function uc_order_condition_products_options() {
-  $options = array('all' => t('- All products -'));
+  $options = ['all' => t('- All products -')];
   $options += db_query('SELECT nid, model FROM {uc_products} ORDER BY model')->fetchAllKeyed();
 
   return $options;
@@ -608,13 +334,13 @@ function uc_order_condition_products_options() {
  * Operator options callback.
  */
 function uc_order_condition_value_operator_options() {
-  return array(
+  return [
     'less' => t('Total is less than specified value.'),
     'less_equal' => t('Total is less than or equal to specified value.'),
     'equal' => t('Total is equal to specified value.'),
     'greater_equal' => t('Total is greater than or equal to specified value.'),
     'greater' => t('Total is greater than specified value.'),
-  );
+  ];
 }
 
 /**
@@ -623,7 +349,7 @@ function uc_order_condition_value_operator_options() {
  * @see uc_order_condition_products_weight_form()
  */
 function uc_order_condition_products_weight($order, $products, $weight_units, $weight_value, $op) {
-  $totals = array('all' => 0);
+  $totals = ['all' => 0];
   $total = 0;
   foreach ($order->products as $product) {
     $unit_conversion = uc_weight_conversion($product->weight_units, $weight_units);
@@ -647,12 +373,12 @@ function uc_order_condition_products_weight($order, $products, $weight_units, $w
  * Weight units options callback.
  */
 function uc_order_condition_weight_units_options() {
-  return array(
+  return [
     'lb' => t('Pounds'),
     'kg' => t('Kilograms'),
     'oz' => t('Ounces'),
     'g' => t('Grams'),
-  );
+  ];
 }
 
 /**
@@ -678,7 +404,7 @@ function uc_order_action_update_status($order, $status) {
  */
 function uc_order_action_add_comment($order, $comment, $comment_type) {
   uc_order_comment_save($order->id(), 0,
-    \Drupal::token()->replace($comment, array('uc_order' => $order)),
+    \Drupal::token()->replace($comment, ['uc_order' => $order]),
     $comment_type == 'admin' ? 'admin' : 'order',
     $order->getStatusId(), $comment_type == 'notified');
 }
@@ -687,11 +413,11 @@ function uc_order_action_add_comment($order, $comment, $comment_type) {
  * @see uc_order_action_add_comment()
  */
 function uc_order_action_order_comment_types() {
-  return array(
+  return [
     'admin' => t('Enter this as an admin comment.'),
     'order' => t('Enter this as a customer order comment.'),
     'notified' => t('Enter this as a customer order comment with a notified icon.'),
-  );
+  ];
 }
 
 /**
@@ -705,18 +431,18 @@ function uc_order_action_order_comment_types() {
 function uc_order_action_email($order, $from, $addresses, $subject, $message, $format) {
   $token_service = \Drupal::token();
 
-  $settings = array(
+  $settings = [
     'from' => $from,
     'addresses' => $addresses,
     'subject' => $subject,
     'message' => $message,
     'format' => $format,
-  );
+  ];
 
-  // Token replacements for the subject and body
-  $settings['replacements'] = array(
+  // Token replacements for the subject and body.
+  $settings['replacements'] = [
     'uc_order' => $order,
-  );
+  ];
 
   // Apply token replacements to the 'from' e-mail address.
   $from = $token_service->replace($settings['from'], $settings['replacements']);
@@ -727,20 +453,20 @@ function uc_order_action_email($order, $from, $addresses, $subject, $message, $f
   // Apply token replacements to 'recipient' e-mail addresses.
   $addresses = $token_service->replace($settings['addresses'], $settings['replacements']);
   // Split up our recipient e-mail addresses.
-  $recipients = array();
+  $recipients = [];
   foreach (explode("\n", $addresses) as $address) {
     $address = trim($address);
-    // Remove blank lines
+    // Remove blank lines.
     if (!empty($address)) {
       $recipients[] = $address;
     }
   }
 
   foreach ($recipients as $email) {
-    $sent = \Drupal::service('plugin.manager.mail')->mail('uc_order', 'action-mail', $email, uc_store_mail_recipient_langcode($email), $settings, $from);
+    $sent = \Drupal::service('plugin.manager.mail')->mail('uc_order', 'rules-action-email', $email, uc_store_mail_recipient_langcode($email), $settings, $from);
 
     if (!$sent['result']) {
-      \Drupal::logger('uc_order')->error('Attempt to e-mail @email concerning order @order_id failed.', array('@email' => $email, '@order_id' => $order->id()));
+      \Drupal::logger('uc_order')->error('Attempt to e-mail @email concerning order @order_id failed.', ['@email' => $email, '@order_id' => $order->id()]);
     }
   }
 }
@@ -751,7 +477,7 @@ function uc_order_action_email($order, $from, $addresses, $subject, $message, $f
 function uc_order_message_formats() {
   global $user;
 
-  $options = array();
+  $options = [];
   $formats = filter_formats($user);
   foreach ($formats as $format) {
     $options[$format->format] = $format->name;
@@ -768,17 +494,17 @@ function uc_order_message_formats() {
 function uc_order_action_email_invoice($order, $from, $addresses, $subject, $template, $view) {
   $token_service = \Drupal::token();
 
-  $settings = array(
+  $settings = [
     'from' => $from,
     'addresses' => $addresses,
     'subject' => $subject,
     'template' => $template,
     'view' => $view,
-  );
-  // Token replacements for the from, subject and body
-  $settings['replacements'] = array(
+  ];
+  // Token replacements for the from, subject and body.
+  $settings['replacements'] = [
     'uc_order' => $order,
-  );
+  ];
 
   // Apply token replacements to the 'from' e-mail address.
   $from = $token_service->replace($settings['from'], $settings['replacements']);
@@ -789,28 +515,28 @@ function uc_order_action_email_invoice($order, $from, $addresses, $subject, $tem
   // Apply token replacements to 'recipient' e-mail addresses.
   $addresses = $token_service->replace($settings['addresses'], $settings['replacements']);
   // Split up our recipient e-mail addresses.
-  $recipients = array();
+  $recipients = [];
   foreach (explode("\n", $addresses) as $address) {
     $address = trim($address);
-    // Remove blank lines
+    // Remove blank lines.
     if (!empty($address)) {
       $recipients[] = $address;
     }
   }
 
-  $message = array(
+  $message = [
     '#theme' => 'uc_order_invoice',
     '#order' => $order,
     '#op' => $settings['view'],
     '#template' => $settings['template'],
-  );
+  ];
   $settings['message'] = \Drupal::service('renderer')->renderPlain($message);
 
   foreach ($recipients as $email) {
-    $sent = \Drupal::service('plugin.manager.mail')->mail('uc_order', 'action-mail', $email, uc_store_mail_recipient_langcode($email), $settings, $from);
+    $sent = \Drupal::service('plugin.manager.mail')->mail('uc_order', 'rules-action-email', $email, uc_store_mail_recipient_langcode($email), $settings, $from);
 
     if (!$sent['result']) {
-      \Drupal::logger('uc_order')->error('Attempt to e-mail invoice for order @order_id to @email failed.', array('@email' => $email, '@order_id' => $order->id()));
+      \Drupal::logger('uc_order')->error('Attempt to e-mail invoice for order @order_id to @email failed.', ['@email' => $email, '@order_id' => $order->id()]);
     }
   }
 }
@@ -819,11 +545,11 @@ function uc_order_action_email_invoice($order, $from, $addresses, $subject, $tem
  * @see uc_order_action_email_invoice()
  */
 function uc_order_action_email_invoice_view_options() {
-  return array(
+  return [
     'print' => t('Show the business header and shipping method.'),
     'admin-mail' => t('Show all of the above plus the help text, email text, and store footer.'),
     'checkout-mail' => t('Show all of the above plus the "thank you" message.'),
-  );
+  ];
 }
 
 /**

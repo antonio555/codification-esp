@@ -11,18 +11,19 @@
  * USPS uses the ISO 3166 English short names in most cases.  This function
  * handles the exceptions.
  *
- * @param $code
+ * @param string $code
  *   ISO 3166-1 2-character country code.
  *
- * @return
+ * @return string
  *   Country name string for use by the USPS International Rate API.
  *
  * @see http://pe.usps.gov/text/imm/immctry.htm
  */
 function uc_usps_country_map($code = NULL) {
-  $countries = array(
+  $countries = [
     'AX' => 'Aland Island (Finland)',
-    'AU' => 'Australia', // Heard Island and McDonald Islands
+    // Heard Island and McDonald Islands.
+    'AU' => 'Australia',
     'BO' => 'Bolivia',
     'BQ' => 'Bonaire (Netherlands Antilles)',
     'VG' => 'British Virgin Islands',
@@ -33,20 +34,26 @@ function uc_usps_country_map($code = NULL) {
     'CI' => "Cote d'Ivoire",
     'TL' => 'East Timor (Indonesia)',
     'FK' => 'Falkland Islands',
-    'TF' => 'France', // French Southern Territories
+    // French Southern Territories.
+    'TF' => 'France',
     'GE' => 'Georgia, Republic of',
     'GB' => 'Great Britain and Northern Ireland',
-    'IO' => 'Great Britain and Northern Ireland', // British Indian Ocean Territory
-    'GS' => 'Great Britain and Northern Ireland', // South Georgia and the
-                                                 // South Sandwich Islands
+    // British Indian Ocean Territory.
+    'IO' => 'Great Britain and Northern Ireland',
+    // South Georgia and the South Sandwich Islands.
+    'GS' => 'Great Britain and Northern Ireland',
     'IR' => 'Iran',
-    'IL' => 'Israel', // Palestinian Territory, Occupied
+    // Palestinian Territory, Occupied.
+    'IL' => 'Israel',
     'IM' => 'Isle of Man (Great Britain and Northern Ireland)',
     'MD' => 'Moldova',
-    'MA' => 'Morocco', // Western Sahara
+    // Western Sahara.
+    'MA' => 'Morocco',
     'KP' => "Korea, Democratic People's Republic of (North Korea)",
-    'BV' => 'Norway', // Bouvet Island
-    'SJ' => 'Norway', // Svalbard and Jan Mayen
+    // Bouvet Island.
+    'BV' => 'Norway',
+    // Svalbard and Jan Mayen.
+    'SJ' => 'Norway',
     'KR' => 'Korea, Republic of (South Korea)',
     'LA' => 'Laos',
     'MC' => 'Monaco (France)',
@@ -67,7 +74,7 @@ function uc_usps_country_map($code = NULL) {
     'VA' => 'Vatican City',
     'VE' => 'Venezuela',
     'WF' => 'Wallis and Futuna Islands',
-  );
+  ];
 
   if ($code) {
     if (isset($countries[$code])) {
