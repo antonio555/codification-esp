@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class OrderForm extends ContentEntityForm {
 
-  //use AjaxAttachTrait;
+//  use AjaxAttachTrait;
 
   /**
    * The order pane plugin manager.

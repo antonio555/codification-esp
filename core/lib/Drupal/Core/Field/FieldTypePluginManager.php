@@ -102,10 +102,10 @@ class FieldTypePluginManager extends DefaultPluginManager implements FieldTypePl
    */
   public function getDefaultStorageSettings($type) {
     $plugin_definition = $this->getDefinition($type, FALSE);
-    /*if (!empty($plugin_definition['class'])) {
+    if (!empty($plugin_definition['class'])) {
       $plugin_class = DefaultFactory::getPluginClass($type, $plugin_definition);
       return $plugin_class::defaultStorageSettings();
-    }*/
+    }
     return [];
   }
 
@@ -113,11 +113,11 @@ class FieldTypePluginManager extends DefaultPluginManager implements FieldTypePl
    * {@inheritdoc}
    */
   public function getDefaultFieldSettings($type) {
-    /*$plugin_definition = $this->getDefinition($type, FALSE);
+    $plugin_definition = $this->getDefinition($type, FALSE);
     if (!empty($plugin_definition['class'])) {
       $plugin_class = DefaultFactory::getPluginClass($type, $plugin_definition);
       return $plugin_class::defaultFieldSettings();
-    }*/
+    }
     return [];
   }
 
