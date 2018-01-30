@@ -93,9 +93,9 @@ class DefaultFactory implements FactoryInterface {
       throw new PluginException(sprintf('%s can only handle plugin definitions that are arrays or that implement %s, but %s given.', __CLASS__, PluginDefinitionInterface::class, $plugin_definition_type));
     }
 
-    if (!class_exists($class)) {
+    /*if (!class_exists($class)) {
       throw new PluginException(sprintf('Plugin (%s) instance class "%s" does not exist.', $plugin_id, $class));
-    }
+    }*/
 
     if ($required_interface && !is_subclass_of($class, $required_interface)) {
       throw new PluginException(sprintf('Plugin "%s" (%s) must implement interface %s.', $plugin_id, $class, $required_interface));
